@@ -3,6 +3,7 @@ pandas
 requests
 beautifulsoup4
 lxml
+lxml_html_clean
 trafilatura
 rapidfuzz
 scikit-learn
