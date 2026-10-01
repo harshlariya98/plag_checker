@@ -185,11 +185,15 @@ section[data-testid="stSidebar"] span { color: var(--text) !important; font-size
 .legend-row { display: flex; align-items: center; gap: .5rem; font-size: .8rem; font-weight: 700; }
 .ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
+/* hide Streamlit's default top-right toolbar menu (Deploy etc) that overlaps hero */
+header[data-testid="stHeader"] { background: transparent !important; }
+div[data-testid="stToolbar"] { display: none !important; }
+
 /* ── HERO ───────────────────────────────── */
 .hero {
     background: var(--g-hero);
     border-radius: 0 0 20px 20px;
-    padding: 1.75rem 2.5rem 1.9rem;
+    padding: 1.5rem 2.5rem 1.9rem;
     margin: 0 -2rem 1.75rem;
     position: relative; overflow: hidden;
     animation: fadeIn .5s ease;
@@ -207,30 +211,30 @@ section[data-testid="stSidebar"] span { color: var(--text) !important; font-size
     pointer-events: none;
 }
 .hero-top {
-    display: flex; align-items: center; gap: .65rem;
-    margin-bottom: 1rem;
+    display: flex; align-items: center; gap: .6rem;
+    margin-bottom: 1.1rem; flex-wrap: wrap;
 }
-.hero-logo { width: 32px; height: 32px; object-fit: contain; filter: brightness(0) invert(1); opacity: .92; }
+.hero-logo { width: 28px; height: 28px; object-fit: contain; filter: brightness(0) invert(1); opacity: .9; flex-shrink: 0; }
 .hero-brand {
     font-family: 'Gabarito', sans-serif;
-    font-size: 1rem; font-weight: 600; color: rgba(255,255,255,.9);
-    letter-spacing: -.2px;
+    font-size: .95rem; font-weight: 600; color: rgba(255,255,255,.88);
+    letter-spacing: -.15px;
 }
+.hero-divider { width: 1px; height: 16px; background: rgba(255,255,255,.25); flex-shrink: 0; }
 .hero-pill {
-    margin-left: auto;
     display: inline-flex; align-items: center; gap: .35rem;
-    background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
-    color: rgba(255,255,255,.88); font-size: .68rem; font-weight: 700;
-    letter-spacing: .08em; text-transform: uppercase;
-    padding: 3px 10px 3px 8px; border-radius: 99px;
+    background: rgba(255,255,255,.13); border: 1px solid rgba(255,255,255,.22);
+    color: rgba(255,255,255,.85); font-size: .65rem; font-weight: 700;
+    letter-spacing: .09em; text-transform: uppercase;
+    padding: 3px 9px; border-radius: 99px;
 }
 .hero h1 {
     font-family: 'Gabarito', sans-serif;
-    font-size: 2rem; font-weight: 700; color: #fff;
-    margin: 0 0 .45rem; letter-spacing: -.5px; line-height: 1.15;
+    font-size: 1.9rem; font-weight: 700; color: #fff;
+    margin: 0 0 .5rem; letter-spacing: -.4px; line-height: 1.18;
 }
 .hero h1 em { color: var(--coral); font-style: normal; }
-.hero p { font-size: .88rem; color: rgba(255,255,255,.7); margin: 0; line-height: 1.7; max-width: 520px; }
+.hero p { font-size: .875rem; color: rgba(255,255,255,.68); margin: 0; line-height: 1.72; max-width: 500px; }
 
 /* ── CORPUS STATUS ──────────────────────── */
 .corpus-pill {
@@ -264,28 +268,59 @@ section[data-testid="stSidebar"] span { color: var(--text) !important; font-size
     box-shadow: 0 3px 10px rgba(22,50,79,.28);
 }
 .section-title { font-size: 1.05rem; font-weight: 900; color: var(--navy); letter-spacing: -.25px; }
-.section-sub { margin-left: auto; font-size: .75rem; font-weight: 700; color: var(--muted); }
+.section-sub { font-size: .75rem; font-weight: 700; color: var(--muted); padding-left: .25rem; }
 
 /* ── RADIO AS PILL TOGGLE ───────────────── */
-div[data-testid="stRadio"] { margin-bottom: .75rem; }
+div[data-testid="stRadio"] { margin-bottom: .5rem; }
+
+/* pill container */
 div[data-testid="stRadio"] > div {
-    display: inline-flex !important; flex-direction: row !important;
-    background: #EEF1F6; border-radius: 10px; padding: 3px; gap: 2px;
+    display: inline-flex !important;
+    flex-direction: row !important;
+    background: #E8EDF3 !important;
+    border-radius: 10px !important;
+    padding: 3px !important;
+    gap: 2px !important;
+    border: 1px solid #D8DEE6 !important;
 }
+
+/* each pill option */
 div[data-testid="stRadio"] > div > label {
-    display: flex !important; align-items: center;
-    padding: .45rem 1.1rem !important; border-radius: 8px !important;
-    font-size: .84rem !important; font-weight: 700 !important;
-    cursor: pointer !important; color: var(--muted) !important;
-    transition: all .18s !important; margin: 0 !important;
-    user-select: none;
+    display: flex !important;
+    align-items: center !important;
+    padding: .38rem 1rem !important;
+    border-radius: 7px !important;
+    font-size: .83rem !important;
+    font-weight: 700 !important;
+    cursor: pointer !important;
+    color: var(--muted) !important;
+    transition: background .16s, color .16s, box-shadow .16s !important;
+    margin: 0 !important;
+    user-select: none !important;
+    white-space: nowrap !important;
+    line-height: 1.4 !important;
 }
+
+/* active pill */
 div[data-testid="stRadio"] > div > label:has(input:checked) {
-    background: var(--surface) !important; color: var(--navy) !important;
-    box-shadow: 0 1px 5px rgba(22,50,79,.14) !important;
+    background: var(--surface) !important;
+    color: var(--navy) !important;
+    box-shadow: 0 1px 4px rgba(22,50,79,.16) !important;
 }
-div[data-testid="stRadio"] > div > label input { display: none !important; }
-div[data-testid="stRadio"] > div > label > div { display: none !important; }
+
+/* hide native radio button input */
+div[data-testid="stRadio"] > div > label input[type="radio"] {
+    position: absolute !important; opacity: 0 !important;
+    width: 1px !important; height: 1px !important; pointer-events: none !important;
+}
+
+/* hide only the SVG circle indicator, NOT the text */
+div[data-testid="stRadio"] > div > label > div {
+    display: flex !important; align-items: center !important; gap: .35rem !important;
+}
+div[data-testid="stRadio"] > div > label > div > div:first-child {
+    display: none !important;
+}
 
 /* ── FILE UPLOADER ──────────────────────── */
 div[data-testid="stFileUploader"] {
@@ -676,12 +711,13 @@ with st.sidebar:
 # Page header
 # ─────────────────────────────────────────────────────────────────────────────
 _hero_logo = (f'<img src="{LOGO_URI}" class="hero-logo" alt="KollegeApply">'
-              if LOGO_URI else '<span style="font-size:1.4rem;">🎓</span>')
+              if LOGO_URI else '<span style="font-size:1.25rem;line-height:1;">🎓</span>')
 st.markdown(
     '<div class="hero">'
     '<div class="hero-top">'
     f'{_hero_logo}'
     '<span class="hero-brand">KollegeApply</span>'
+    '<span class="hero-divider"></span>'
     '<span class="hero-pill">🔍 Internal Tool</span>'
     '</div>'
     '<h1>Plag <em>Checker</em> ✨</h1>'
@@ -730,9 +766,9 @@ new_src = st.radio("Input method", ["📂  Upload CSV", "🔗  Paste URLs"],
 with st.container(border=True):
     if new_src == "📂  Upload CSV":
         new_file = st.file_uploader(
-            "Drop your CSV here — or click to browse",
+            "upload",
             type=["csv"], key="new_upload",
-            label_visibility="visible",
+            label_visibility="collapsed",
         )
         st.markdown(
             '<p class="upload-hint">Need: <code>url</code> column &nbsp;·&nbsp; '
