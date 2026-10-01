@@ -861,12 +861,16 @@ with left_col:
                     if err2:
                         st.warning(f"🤔 Column mapping needed — {err2}")
                         mc1, mc2 = st.columns(2)
-                        url_c  = mc1.selectbox("URL column", list(raw_new.columns), key="nu")
+                        url_c  = mc1.selectbox("URL column",
+                                               ["(none)"] + list(raw_new.columns), key="nu")
                         desc_c = mc2.selectbox("Description column",
                                                ["(none)"] + list(raw_new.columns), key="nd")
-                        rename = {url_c: "url"}
+                        rename = {}
+                        if url_c  != "(none)": rename[url_c]  = "url"
                         if desc_c != "(none)": rename[desc_c] = "description"
                         df2 = raw_new.rename(columns=rename)
+                        if "url" not in df2.columns:
+                            df2["url"] = [f"article_{i+1}" for i in range(len(df2))]
                         if "description" not in df2.columns: df2["description"] = ""
                     new_df = df2
                     if new_df is not None:
