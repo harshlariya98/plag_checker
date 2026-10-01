@@ -25,7 +25,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from plag_utils import fetch_text, check_article
+from plag_utils import fetch_text, check_article, clear_page_cache
 
 @st.cache_data(show_spinner=False)
 def _logo_b64():
@@ -940,6 +940,9 @@ with left_col:
                                 use_container_width=True, key="run_btn")
 
         if run_btn:
+            # Clear cached page text for these URLs so re-runs pick up live changes
+            clear_page_cache(new_df["url"].tolist())
+
             # prepare new articles
             with st.status("📥 Preparing articles…", expanded=True) as s2:
                 prog = st.progress(0.0)
@@ -968,10 +971,13 @@ with left_col:
                     vt      = [t for _, t in valid_new]
                     new_mat = corpus_vec.transform(vt)
                     sims    = cosine_similarity(new_mat, corpus_mat)
-                    # Build a URL→index map so we can exclude self-matches
-                    corpus_url_idx = {u: i for i, u in enumerate(corpus_urls)}
+                    def _norm_url(u):
+                        return str(u).strip().lower().rstrip("/")
+
+                    # Build a normalised URL→index map so we can exclude self-matches
+                    corpus_url_idx = {_norm_url(u): i for i, u in enumerate(corpus_urls)}
                     for ni, (orig_i, _) in enumerate(valid_new):
-                        row_url = new_df.iloc[orig_i]["url"]
+                        row_url = _norm_url(new_df.iloc[orig_i]["url"])
                         scores  = sims[ni].copy()
                         # If this article is already in the corpus, mask it out
                         # so we find the best *other* match instead of itself

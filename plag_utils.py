@@ -32,6 +32,12 @@ TIMEOUT = 20
 _page_cache = {}
 
 
+def clear_page_cache(urls):
+    """Remove specific URLs from the in-memory fetch cache so they are re-fetched fresh."""
+    for u in urls:
+        _page_cache.pop(u, None)
+
+
 def normalize(s):
     s = s.lower()
     s = re.sub(r"[^a-z0-9\s]", " ", s)
