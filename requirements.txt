@@ -8,3 +8,7 @@ trafilatura
 rapidfuzz
 scikit-learn
 ddgs
+numpy
+sqlalchemy
+psycopg2-binary
+pymysql
