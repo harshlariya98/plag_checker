@@ -966,17 +966,29 @@ with left_col:
             # similarity
             with st.status("⚡ Computing similarity…", expanded=False) as s3:
                 valid_new   = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
-                sim_results = [(0.0, 0)] * n_new
+                sim_results = [(0.0, 0, 0.0)] * n_new  # (score, corpus_idx, oov_ratio)
+
+                corpus_vocab = set(corpus_vec.vocabulary_.keys())
+                _stop = corpus_vec.get_stop_words() or set()
+
+                def _oov_ratio(text):
+                    tokens = re.findall(r'\b[a-z]{3,}\b', text.lower())
+                    tokens = [t for t in tokens if t not in _stop]
+                    if not tokens:
+                        return 0.0
+                    oov = sum(1 for t in tokens if t not in corpus_vocab)
+                    return round(oov / len(tokens) * 100, 1)
+
+                def _norm_url(u):
+                    return str(u).strip().lower().rstrip("/")
+
                 if valid_new and corpus_mat.shape[0] > 0:
                     vt      = [t for _, t in valid_new]
                     new_mat = corpus_vec.transform(vt)
                     sims    = cosine_similarity(new_mat, corpus_mat)
-                    def _norm_url(u):
-                        return str(u).strip().lower().rstrip("/")
-
                     # Build a normalised URL→index map so we can exclude self-matches
                     corpus_url_idx = {_norm_url(u): i for i, u in enumerate(corpus_urls)}
-                    for ni, (orig_i, _) in enumerate(valid_new):
+                    for ni, (orig_i, t) in enumerate(valid_new):
                         row_url = _norm_url(new_df.iloc[orig_i]["url"])
                         scores  = sims[ni].copy()
                         # If this article is already in the corpus, mask it out
@@ -985,7 +997,7 @@ with left_col:
                             scores[corpus_url_idx[row_url]] = -1.0
                         best_j  = int(scores.argmax())
                         best_sc = round(float(scores[best_j]) * 100, 1)
-                        sim_results[orig_i] = (best_sc, best_j)
+                        sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t))
                 s3.update(label="⚡ Similarity computed", state="complete")
 
             # optional web check
@@ -1015,7 +1027,7 @@ with left_col:
 
             # assemble
             final_rows = []
-            for row, txt, wc, (sc, ci) in zip(
+            for row, txt, wc, (sc, ci, oov) in zip(
                 new_df.itertuples(), new_texts, new_wc, sim_results
             ):
                 corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
@@ -1025,6 +1037,7 @@ with left_col:
                     "url":                    row.url,
                     "word_count":             wc,
                     "similarity_to_corpus_%": sc,
+                    "new_vocab_%":            oov,
                     "verdict":                vlabel,
                     "matched_existing_url":   corp_url,
                     "web_plag_score":         wr.get("plagiarism_score"),
@@ -1132,6 +1145,7 @@ if results:
                 "Article":          r["url"],
                 "Words":            r["word_count"],
                 "Similarity":       r["similarity_to_corpus_%"],
+                "New vocab %":      r.get("new_vocab_%", 0.0),
                 "Verdict":          r["verdict"],
                 "Closest existing": r["matched_existing_url"],
             } for r in show])
@@ -1143,6 +1157,10 @@ if results:
                     "Words":            st.column_config.NumberColumn(width="small"),
                     "Similarity":       st.column_config.ProgressColumn(
                         min_value=0, max_value=100, format="%.0f%%", width="small"),
+                    "New vocab %":      st.column_config.ProgressColumn(
+                        help="% of meaningful words in this article not found anywhere in the corpus. "
+                             "High = lots of new/unique content. Low = mostly the same words as corpus.",
+                        min_value=0, max_value=100, format="%.1f%%", width="small"),
                     "Verdict":          st.column_config.TextColumn(width="small"),
                     "Closest existing": st.column_config.LinkColumn(width="large"),
                 },
