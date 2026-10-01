@@ -7,6 +7,8 @@ lxml_html_clean
 trafilatura
 rapidfuzz
 scikit-learn
+scipy
+joblib
 ddgs
 numpy
 sqlalchemy

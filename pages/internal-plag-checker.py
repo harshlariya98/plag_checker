@@ -11,16 +11,20 @@ import os
 import sys
 from datetime import datetime
 
+import joblib
 import pandas as pd
 import streamlit as st
+from scipy.sparse import save_npz, load_npz
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from plag_utils import extract_text_from_html, fetch_text, check_article
 
-# ── fixed reference corpus path ───────────────────────────────────────────────
+# ── paths ─────────────────────────────────────────────────────────────────────
 CORPUS_PATH = "/Users/harsh/Documents/final_data_plag.csv"
+CACHE_DIR   = os.path.join(os.path.dirname(CORPUS_PATH), ".plag_cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
@@ -172,26 +176,62 @@ def load_corpus(path):
     return df
 
 
+def _cache_key():
+    """Return a string based on the CSV's modification time."""
+    return str(int(os.path.getmtime(CORPUS_PATH)))
+
+
+def _disk_cache_exists(key):
+    return all(os.path.exists(os.path.join(CACHE_DIR, f"{key}.{ext}"))
+               for ext in ("vec.pkl", "mat.npz", "urls.pkl"))
+
+
+def _load_from_disk(key):
+    vec  = joblib.load(os.path.join(CACHE_DIR, f"{key}.vec.pkl"))
+    mat  = load_npz(os.path.join(CACHE_DIR, f"{key}.mat.npz"))
+    urls = joblib.load(os.path.join(CACHE_DIR, f"{key}.urls.pkl"))
+    return vec, mat, urls
+
+
+def _save_to_disk(key, vec, mat, urls):
+    joblib.dump(vec,  os.path.join(CACHE_DIR, f"{key}.vec.pkl"))
+    save_npz(         os.path.join(CACHE_DIR, f"{key}.mat.npz"), mat)
+    joblib.dump(urls, os.path.join(CACHE_DIR, f"{key}.urls.pkl"))
+
+
 def _ensure_corpus_index():
     """
-    Build corpus index with visible progress bars.
-    Results stored in st.session_state so they survive reruns but show progress on first build.
+    Load or build corpus index.
+    Priority: session_state (instant) → disk cache (fast) → build from scratch (slow, once only).
     """
     if "corpus_urls" in st.session_state:
-        return  # already built this session
+        return  # already in memory this session
 
-    df = load_corpus(CORPUS_PATH)
-    urls = df["url"].tolist()
+    key = _cache_key()
+
+    if _disk_cache_exists(key):
+        # ── fast path: load from disk ─────────────────────────────────────────
+        with st.spinner("⚡ Loading corpus index from disk cache…"):
+            vec, mat, urls = _load_from_disk(key)
+        st.session_state["corpus_urls"] = urls
+        st.session_state["corpus_vec"]  = vec
+        st.session_state["corpus_mat"]  = mat
+        return
+
+    # ── slow path: build from scratch, then save to disk ─────────────────────
+    df    = load_corpus(CORPUS_PATH)
+    urls  = df["url"].tolist()
     descs = df["description"].tolist()
-    n = len(urls)
+    n     = len(urls)
 
-    # Step A — parse HTML with progress
+    # Step A — parse HTML
     st.markdown(
-        '<div class="callout"><b>Step A/2 — Parsing corpus HTML…</b> '
-        'This runs once per session.</div>',
+        '<div class="callout"><b>Building index for the first time</b> — '
+        'this takes a few minutes once, then loads in seconds every time after.</div>',
         unsafe_allow_html=True,
     )
-    prog_a   = st.progress(0.0)
+    st.markdown("**Step 1 / 2 — Parsing article HTML…**")
+    prog_a    = st.progress(0.0)
     counter_a = st.empty()
     texts = []
     for i, html in enumerate(descs, 1):
@@ -199,19 +239,16 @@ def _ensure_corpus_index():
         if i % 500 == 0 or i == n:
             prog_a.progress(i / n)
             counter_a.markdown(
-                f'<div style="font-size:.85rem;color:#475569;">'
-                f'📄 Parsing article <b>{i:,}</b> of <b>{n:,}</b></div>',
+                f'<span style="font-size:.85rem;color:#475569;">'
+                f'📄 <b>{i:,}</b> / <b>{n:,}</b> articles parsed</span>',
                 unsafe_allow_html=True,
             )
     prog_a.empty()
     counter_a.empty()
 
-    # Step B — fit TF-IDF
-    st.markdown(
-        '<div class="callout"><b>Step B/2 — Building TF-IDF index…</b></div>',
-        unsafe_allow_html=True,
-    )
-    with st.spinner(f"Fitting vectorizer on {n:,} articles…"):
+    # Step B — fit TF-IDF and save
+    st.markdown("**Step 2 / 2 — Fitting TF-IDF index & saving to disk…**")
+    with st.spinner(f"Vectorising {n:,} articles…"):
         vec = TfidfVectorizer(
             ngram_range=(1, 2),
             stop_words="english",
@@ -219,11 +256,12 @@ def _ensure_corpus_index():
             max_features=50000,
         )
         mat = vec.fit_transform(texts)
+        _save_to_disk(key, vec, mat, urls)
 
-    st.session_state["corpus_urls"]  = urls
-    st.session_state["corpus_vec"]   = vec
-    st.session_state["corpus_mat"]   = mat
-    st.rerun()  # clean up the progress UI
+    st.session_state["corpus_urls"] = urls
+    st.session_state["corpus_vec"]  = vec
+    st.session_state["corpus_mat"]  = mat
+    st.rerun()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
