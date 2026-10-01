@@ -872,11 +872,20 @@ with left_col:
                     if new_df is not None:
                         new_df["url"]         = new_df["url"].astype(str).str.strip()
                         new_df["description"] = new_df["description"].astype(str).fillna("")
+                        # Drop rows with null/empty/nan URLs
+                        before = len(new_df)
+                        new_df = new_df[
+                            new_df["url"].notna() &
+                            (new_df["url"].str.strip() != "") &
+                            (new_df["url"].str.lower() != "nan")
+                        ].reset_index(drop=True)
+                        dropped = before - len(new_df)
                         has_desc = (new_df["description"].str.strip().str.len() > 10).sum()
                         no_desc  = len(new_df) - has_desc
                         parts = [f"✅ **{len(new_df):,}** articles loaded"]
                         if has_desc: parts.append(f"{has_desc:,} have HTML content")
                         if no_desc:  parts.append(f"{no_desc:,} will be fetched live")
+                        if dropped:  parts.append(f"⚠️ {dropped:,} rows skipped (no URL)")
                         st.success("  ·  ".join(parts))
 
         with tab_url:
