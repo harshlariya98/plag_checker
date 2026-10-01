@@ -24,171 +24,239 @@ from sklearn.metrics.pairwise import cosine_similarity
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from plag_utils import fetch_text, check_article
 
+# ── paths ─────────────────────────────────────────────────────────────────────
+CORPUS_PATH = "/Users/harsh/Documents/final_data_plag.csv"
+CACHE_DIR   = os.path.join(os.path.dirname(CORPUS_PATH), ".plag_cache")
+os.makedirs(CACHE_DIR, exist_ok=True)
+
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE  = re.compile(r"\s+")
 
 def _fast_strip(s):
-    """Strip HTML tags — used for single articles (new CSV)."""
     if not s or len(s) < 10:
         return ""
     return _WS_RE.sub(" ", _TAG_RE.sub(" ", s)).strip()
 
-
 def _vectorized_strip(series):
-    """Vectorized HTML stripping on a pandas Series — C-speed, no Python loop."""
     return (series
             .str.replace(r"<[^>]+>", " ", regex=True)
             .str.replace(r"\s+",    " ", regex=True)
             .str.strip()
             .fillna(""))
 
-
 def _fmt_eta(seconds):
     seconds = max(0, int(seconds))
     if seconds < 60:
-        return f"~{seconds}s remaining"
-    return f"~{seconds // 60}m {seconds % 60}s remaining"
-
+        return f"{seconds}s left"
+    return f"{seconds // 60}m {seconds % 60}s left"
 
 def _run_with_progress(fn, label, est_seconds):
-    """
-    Run fn() in a thread while showing a timed progress bar + ETA in the main thread.
-    Returns fn()'s return value.
-    """
     holder = [None]
     err    = [None]
-
     def _worker():
-        try:
-            holder[0] = fn()
-        except Exception as e:
-            err[0] = e
-
+        try:   holder[0] = fn()
+        except Exception as e: err[0] = e
     t = threading.Thread(target=_worker, daemon=True)
     t.start()
-
-    prog = st.progress(0.0)
-    info = st.empty()
+    prog  = st.progress(0.0)
+    info  = st.empty()
     start = time.time()
-
     while t.is_alive():
-        elapsed  = time.time() - start
-        frac     = min(elapsed / est_seconds, 0.95)
+        elapsed   = time.time() - start
+        frac      = min(elapsed / est_seconds, 0.95)
         remaining = max(0, est_seconds - elapsed)
         prog.progress(frac)
         info.markdown(
-            f'<span style="font-size:.85rem;color:#475569;">'
-            f'⏱ {label} · {_fmt_eta(remaining)}</span>',
+            f'<p class="eta-label">{label} &nbsp;·&nbsp; {_fmt_eta(remaining)}</p>',
             unsafe_allow_html=True,
         )
         time.sleep(0.4)
-
     t.join()
-    prog.progress(1.0)
-    info.empty()
-    prog.empty()
-
-    if err[0]:
-        raise err[0]
+    prog.progress(1.0); info.empty(); prog.empty()
+    if err[0]: raise err[0]
     return holder[0]
-
-# ── paths ─────────────────────────────────────────────────────────────────────
-CORPUS_PATH = "/Users/harsh/Documents/final_data_plag.csv"
-CACHE_DIR   = os.path.join(os.path.dirname(CORPUS_PATH), ".plag_cache")
-os.makedirs(CACHE_DIR, exist_ok=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Internal Plag Checker · KollegeApply",
-    page_icon="🔁",
+    page_title="Plagiarism Checker · KollegeApply",
+    page_icon="🔍",
     layout="wide",
 )
 
 st.markdown("""
 <style>
-.block-container {padding-top:1.5rem !important; max-width:1350px; padding-bottom:3rem;}
+/* ── reset & base ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-section[data-testid="stSidebar"] {background:#0f172a;}
-section[data-testid="stSidebar"] * {color:#e2e8f0 !important;}
-section[data-testid="stSidebar"] .stTextInput input,
-section[data-testid="stSidebar"] .stNumberInput input,
-section[data-testid="stSidebar"] .stTextArea textarea,
-section[data-testid="stSidebar"] .stSelectbox > div {
-    background:#1e293b !important; border-color:#334155 !important; color:#f1f5f9 !important;
-}
-section[data-testid="stSidebar"] hr {border-color:#334155 !important;}
-section[data-testid="stSidebar"] label {color:#94a3b8 !important; font-size:.8rem !important;}
+html, body, [class*="css"] { font-family: 'Inter', -apple-system, sans-serif !important; }
 
-.hero {
-    background:linear-gradient(135deg,#0c1445 0%,#1a237e 45%,#283593 100%);
-    border-radius:20px; padding:1.75rem 2.25rem; margin-bottom:1.5rem;
-    border:1px solid rgba(63,81,181,.4);
-    box-shadow:0 20px 60px rgba(26,35,126,.3);
-}
-.hero h1 {color:#fff; font-size:1.9rem; margin:0 0 .4rem; font-weight:800; letter-spacing:-.5px;}
-.hero p  {color:rgba(255,255,255,.8); margin:0; font-size:.97rem; line-height:1.5;}
-.chips   {margin-top:1rem; display:flex; gap:.5rem; flex-wrap:wrap;}
-.chip    {background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.2);
-          color:#c5cae9 !important; padding:4px 13px; border-radius:99px;
-          font-size:.78rem; font-weight:500;}
-
-.step-label {display:flex; align-items:center; gap:.6rem; font-size:1rem; font-weight:700;
-             color:#1e293b; margin:1.5rem 0 .6rem;}
-.step-badge {width:1.75rem; height:1.75rem; border-radius:50%;
-             background:linear-gradient(135deg,#3f51b5,#7c4dff); color:#fff;
-             display:inline-flex; align-items:center; justify-content:center;
-             font-size:.85rem; font-weight:700; flex-shrink:0;
-             box-shadow:0 2px 8px rgba(63,81,181,.4);}
-
-.corpus-ok {
-    display:inline-flex; align-items:center; gap:.6rem;
-    background:#f0fdf4; border:1px solid #86efac; border-radius:12px;
-    padding:.65rem 1.1rem; font-size:.9rem; color:#14532d; font-weight:600;
-    margin:.4rem 0 1rem;
-}
-.corpus-err {
-    display:inline-flex; align-items:center; gap:.6rem;
-    background:#fef2f2; border:1px solid #fca5a5; border-radius:12px;
-    padding:.65rem 1.1rem; font-size:.9rem; color:#991b1b; font-weight:600;
-    margin:.4rem 0 1rem;
+.block-container {
+    padding: 2rem 2.5rem 4rem !important;
+    max-width: 1280px !important;
 }
 
-.mt {background:#fff; border-radius:14px; padding:1rem 1.25rem;
-     border:1px solid #e2e8f0; box-shadow:0 1px 6px rgba(0,0,0,.05); text-align:center;}
-.mt .val {font-size:1.9rem; font-weight:800; color:#1e293b; line-height:1.1;}
-.mt .lab {font-size:.73rem; color:#64748b; margin-top:.3rem; font-weight:500;
-          text-transform:uppercase; letter-spacing:.04em;}
-.mt.red   .val {color:#dc2626;}
-.mt.amber .val {color:#d97706;}
-.mt.green .val {color:#16a34a;}
-.mt.blue  .val {color:#3f51b5;}
+/* ── sidebar ── */
+section[data-testid="stSidebar"] {
+    background: #FAFAFA !important;
+    border-right: 1px solid #E5E7EB !important;
+}
+section[data-testid="stSidebar"] > div { padding-top: 1.5rem; }
+section[data-testid="stSidebar"] .sidebar-logo {
+    font-size: .7rem; font-weight: 600; letter-spacing: .1em;
+    text-transform: uppercase; color: #9CA3AF; padding: 0 1rem 1rem;
+}
+section[data-testid="stSidebar"] hr { border-color: #E5E7EB !important; }
+section[data-testid="stSidebar"] label { color: #6B7280 !important; font-size: .8rem !important; font-weight: 500 !important; }
+section[data-testid="stSidebar"] .stSlider > div > div > div { background: #4F46E5 !important; }
+section[data-testid="stSidebar"] p { color: #374151 !important; font-size: .85rem !important; }
+section[data-testid="stSidebar"] small { color: #9CA3AF !important; }
 
-.callout      {background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;
-               padding:.85rem 1.1rem; font-size:.88rem; color:#1e3a5f;
-               line-height:1.55; margin:.5rem 0;}
-.callout b    {color:#1e40af;}
-.callout.warn {background:#fffbeb; border-color:#fde68a; color:#78350f;}
+/* ── page header ── */
+.page-header { margin-bottom: 2rem; }
+.page-header h1 {
+    font-size: 1.5rem; font-weight: 700; color: #111827;
+    margin: 0 0 .35rem; letter-spacing: -.3px;
+}
+.page-header p { font-size: .9rem; color: #6B7280; margin: 0; line-height: 1.6; }
 
-.res-card        {background:#fff; border-radius:14px; padding:.9rem 1.2rem;
-                  border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,.06);
-                  margin:.4rem 0; display:flex; gap:1rem; align-items:flex-start;}
-.res-card.danger {border-left:4px solid #dc2626; background:#fef2f2;}
-.res-card.warn   {border-left:4px solid #d97706; background:#fffbeb;}
-.res-card.ok     {border-left:4px solid #16a34a; background:#f0fdf4;}
-.rcscore         {font-size:1.5rem; font-weight:800; min-width:3.5rem; text-align:center;}
-.res-card.danger .rcscore {color:#dc2626;}
-.res-card.warn   .rcscore {color:#d97706;}
-.res-card.ok     .rcscore {color:#16a34a;}
-.rcbody          {flex:1; font-size:.88rem; color:#374151; line-height:1.6;}
-.rcbody a        {color:#3f51b5; text-decoration:none;}
-.rcbody a:hover  {text-decoration:underline;}
-.rcmeta          {font-size:.78rem; color:#94a3b8; margin-top:.2rem;}
+/* ── corpus status bar ── */
+.status-bar {
+    display: flex; align-items: center; gap: .75rem;
+    background: #F0FDF4; border: 1px solid #BBF7D0;
+    border-radius: 10px; padding: .6rem 1rem;
+    font-size: .85rem; font-weight: 500; color: #166534;
+    margin-bottom: 1.75rem;
+}
+.status-bar .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: #16A34A; flex-shrink: 0;
+    box-shadow: 0 0 0 3px rgba(22,163,74,.2);
+}
+.status-bar.error { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
+.status-bar.error .dot { background: #DC2626; box-shadow: 0 0 0 3px rgba(220,38,38,.2); }
 
+/* ── section heading ── */
+.section-head {
+    display: flex; align-items: center; gap: .75rem;
+    margin: 2rem 0 .75rem;
+}
+.section-num {
+    width: 1.6rem; height: 1.6rem; border-radius: 50%;
+    background: #4F46E5; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: .75rem; font-weight: 700; flex-shrink: 0;
+}
+.section-title { font-size: .95rem; font-weight: 600; color: #111827; }
+
+/* ── callout ── */
+.callout {
+    background: #F8FAFF; border: 1px solid #DBEAFE;
+    border-radius: 8px; padding: .75rem 1rem;
+    font-size: .83rem; color: #1E40AF; line-height: 1.6;
+    margin: .5rem 0 1rem;
+}
+.callout.warn { background: #FFFBEB; border-color: #FDE68A; color: #92400E; }
+.callout.success { background: #F0FDF4; border-color: #BBF7D0; color: #166534; }
+
+/* ── build steps (first-time index) ── */
+.build-wrap {
+    background: #fff; border: 1px solid #E5E7EB;
+    border-radius: 12px; padding: 1.5rem 1.75rem; margin-bottom: 1rem;
+}
+.build-step-title {
+    font-size: .8rem; font-weight: 600; letter-spacing: .05em;
+    text-transform: uppercase; color: #6B7280; margin-bottom: .5rem;
+}
+.eta-label { font-size: .8rem; color: #9CA3AF; margin: .25rem 0 0; }
+
+/* ── upload card ── */
+.upload-hint {
+    font-size: .82rem; color: #9CA3AF;
+    margin: .5rem 0 0; line-height: 1.6;
+}
+
+/* ── stat tiles ── */
+.stat-row { display: flex; gap: 1rem; margin: 1rem 0 1.25rem; flex-wrap: wrap; }
+.stat-tile {
+    flex: 1; min-width: 120px;
+    background: #fff; border: 1px solid #E5E7EB;
+    border-radius: 10px; padding: .85rem 1rem;
+    text-align: center;
+}
+.stat-tile .sv { font-size: 1.65rem; font-weight: 700; color: #111827; line-height: 1.1; }
+.stat-tile .sl { font-size: .7rem; font-weight: 600; letter-spacing: .06em;
+                 text-transform: uppercase; color: #9CA3AF; margin-top: .25rem; }
+.stat-tile.red   .sv { color: #DC2626; }
+.stat-tile.amber .sv { color: #D97706; }
+.stat-tile.green .sv { color: #059669; }
+.stat-tile.indigo .sv { color: #4F46E5; }
+
+/* ── alert banner ── */
+.alert-banner {
+    display: flex; align-items: center; gap: .75rem;
+    background: #FEF2F2; border: 1px solid #FECACA;
+    border-radius: 10px; padding: .85rem 1.1rem;
+    font-size: .875rem; color: #991B1B; font-weight: 500;
+    margin: .75rem 0;
+}
+.alert-banner.ok {
+    background: #F0FDF4; border-color: #BBF7D0; color: #166534;
+}
+
+/* ── result cards ── */
+.rc {
+    background: #fff; border: 1px solid #E5E7EB;
+    border-radius: 10px; padding: .85rem 1.1rem;
+    margin: .4rem 0; display: flex; gap: 1rem; align-items: flex-start;
+    transition: box-shadow .15s;
+}
+.rc:hover { box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+.rc.danger { border-left: 3px solid #DC2626; }
+.rc.warn   { border-left: 3px solid #F59E0B; }
+.rc.ok     { border-left: 3px solid #059669; }
+
+.rc-pct {
+    font-size: 1.4rem; font-weight: 700; min-width: 3.25rem;
+    text-align: center; line-height: 1; padding-top: .1rem;
+}
+.rc.danger .rc-pct { color: #DC2626; }
+.rc.warn   .rc-pct { color: #F59E0B; }
+.rc.ok     .rc-pct { color: #059669; }
+
+.rc-body { flex: 1; font-size: .84rem; color: #374151; line-height: 1.65; }
+.rc-body a { color: #4F46E5; text-decoration: none; }
+.rc-body a:hover { text-decoration: underline; }
+.rc-label { font-size: .7rem; font-weight: 600; letter-spacing: .05em;
+            text-transform: uppercase; color: #9CA3AF; margin-bottom: .1rem; }
+.rc-badge {
+    display: inline-block;
+    padding: 1px 8px; border-radius: 99px; font-size: .72rem; font-weight: 600;
+    margin-left: .35rem; vertical-align: middle;
+}
+.rc-badge.danger { background: #FEE2E2; color: #991B1B; }
+.rc-badge.warn   { background: #FEF3C7; color: #92400E; }
+.rc-badge.ok     { background: #D1FAE5; color: #065F46; }
+.rc-meta { font-size: .75rem; color: #9CA3AF; margin-top: .3rem; }
+
+/* ── tab switcher ── */
+div[data-testid="stSegmentedControl"] { margin: .75rem 0 1rem; }
+
+/* ── primary button ── */
 .stButton > button[kind="primary"] {
-    background:linear-gradient(135deg,#3f51b5,#7c4dff) !important;
-    border:none !important; font-weight:600 !important;
-    box-shadow:0 4px 14px rgba(63,81,181,.35) !important;
+    background: #4F46E5 !important; border: none !important;
+    font-weight: 600 !important; letter-spacing: .01em !important;
+    box-shadow: 0 1px 3px rgba(79,70,229,.3) !important;
+    border-radius: 8px !important;
 }
+.stButton > button[kind="primary"]:hover {
+    background: #4338CA !important;
+    box-shadow: 0 4px 12px rgba(79,70,229,.35) !important;
+}
+
+/* ── misc ── */
+.stDataFrame { border-radius: 10px !important; overflow: hidden; }
+div[data-testid="stExpander"] { border-radius: 10px !important; }
+.stProgress > div > div > div { background: #4F46E5 !important; border-radius: 99px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -196,12 +264,14 @@ section[data-testid="stSidebar"] label {color:#94a3b8 !important; font-size:.8re
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
-def step(n, label):
+def section(n, title):
     st.markdown(
-        f'<div class="step-label"><span class="step-badge">{n}</span>{label}</div>',
+        f'<div class="section-head">'
+        f'<span class="section-num">{n}</span>'
+        f'<span class="section-title">{title}</span>'
+        f'</div>',
         unsafe_allow_html=True,
     )
-
 
 def smart_col(df, candidates):
     lower = {c.lower().strip(): c for c in df.columns}
@@ -210,17 +280,14 @@ def smart_col(df, candidates):
             return lower[c]
     return None
 
-
 def verdict_for(score, threshold):
     if score >= threshold:
-        return "danger", "🔴", "Duplicate / high overlap"
+        return "danger", "Duplicate"
     if score >= 40:
-        return "warn",   "🟡", "Moderate overlap — review"
-    return "ok",     "🟢", "Looks unique"
-
+        return "warn",   "Review"
+    return "ok",     "Unique"
 
 def normalise_new(df):
-    """Map columns of the user-uploaded CSV to url / description."""
     url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
     desc_col = smart_col(df, ["description","content","article","body","html",
                                "article_html","text","article_body"])
@@ -235,34 +302,28 @@ def normalise_new(df):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Load corpus (cached across reruns)
+# Corpus helpers
 # ─────────────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_corpus(path):
     df = pd.read_csv(path, usecols=lambda c: c in ["url","description"])
     df["url"] = df["url"].astype(str).str.strip()
-    if "description" not in df.columns:
-        df["description"] = ""
+    if "description" not in df.columns: df["description"] = ""
     df["description"] = df["description"].astype(str)
     return df
 
-
 def _cache_key():
-    """Return a string based on the CSV's modification time."""
     return str(int(os.path.getmtime(CORPUS_PATH)))
-
 
 def _disk_cache_exists(key):
     return all(os.path.exists(os.path.join(CACHE_DIR, f"{key}.{ext}"))
                for ext in ("vec.pkl", "mat.npz", "urls.pkl"))
-
 
 def _load_from_disk(key):
     vec  = joblib.load(os.path.join(CACHE_DIR, f"{key}.vec.pkl"))
     mat  = load_npz(os.path.join(CACHE_DIR, f"{key}.mat.npz"))
     urls = joblib.load(os.path.join(CACHE_DIR, f"{key}.urls.pkl"))
     return vec, mat, urls
-
 
 def _save_to_disk(key, vec, mat, urls):
     joblib.dump(vec,  os.path.join(CACHE_DIR, f"{key}.vec.pkl"))
@@ -271,94 +332,77 @@ def _save_to_disk(key, vec, mat, urls):
 
 
 def _ensure_corpus_index():
-    """
-    Load or build corpus index.
-    Priority: session_state (instant) → disk cache (fast) → build from scratch (slow, once only).
-    """
     if "corpus_urls" in st.session_state:
-        return  # already in memory this session
+        return
 
     key = _cache_key()
 
     if _disk_cache_exists(key):
-        # ── fast path: load from disk ─────────────────────────────────────────
-        with st.spinner("⚡ Loading corpus index from disk cache…"):
+        with st.spinner("Loading index from disk…"):
             vec, mat, urls = _load_from_disk(key)
         st.session_state["corpus_urls"] = urls
         st.session_state["corpus_vec"]  = vec
         st.session_state["corpus_mat"]  = mat
         return
 
-    # ── slow path: build from scratch, save to disk (runs once only) ─────────
+    # ── first-time build ──────────────────────────────────────────────────────
     st.markdown(
-        '<div class="callout"><b>Building index for the first time</b> — '
-        'saved to disk, loads in ~10 s every session after this.</div>',
+        '<div class="callout">First-time setup — the index will be saved to disk '
+        'and loads automatically on every session after this.</div>',
         unsafe_allow_html=True,
     )
 
-    # Step 1 — read CSV + strip HTML in chunks with real progress + ETA
-    st.markdown("**Step 1 / 3 — Reading corpus & stripping HTML…**")
-    prog1  = st.progress(0.0)
-    info1  = st.empty()
+    with st.container(border=False):
+        # Step 1 — read + strip
+        st.markdown('<p class="build-step-title">Step 1 of 3 &nbsp;·&nbsp; Reading & parsing corpus</p>',
+                    unsafe_allow_html=True)
+        prog1 = st.progress(0.0)
+        info1 = st.empty()
 
-    CHUNK = 10_000
-    url_chunks, text_chunks = [], []
+        CHUNK = 10_000
+        url_chunks, text_chunks = [], []
+        with open(CORPUS_PATH, "rb") as f:
+            total_rows = sum(1 for _ in f) - 1
 
-    with open(CORPUS_PATH, "rb") as f:
-        total_rows = sum(1 for _ in f) - 1
+        reader    = pd.read_csv(CORPUS_PATH,
+                                usecols=lambda c: c in ["url","description"],
+                                chunksize=CHUNK)
+        rows_done = 0
+        t0        = time.time()
+        for chunk in reader:
+            chunk["url"]         = chunk["url"].astype(str).str.strip()
+            chunk["description"] = chunk.get("description",
+                                             pd.Series([""] * len(chunk))).astype(str)
+            url_chunks.append(chunk["url"])
+            text_chunks.append(_vectorized_strip(chunk["description"]))
+            rows_done += len(chunk)
+            frac    = min(rows_done / total_rows, 1.0)
+            elapsed = time.time() - t0
+            eta     = (elapsed / frac * (1 - frac)) if frac > 0.01 else 0
+            prog1.progress(frac)
+            info1.markdown(
+                f'<p class="eta-label">{rows_done:,} / {total_rows:,} rows'
+                f'&nbsp;·&nbsp; {_fmt_eta(eta)}</p>',
+                unsafe_allow_html=True,
+            )
+        prog1.empty(); info1.empty()
+        urls  = pd.concat(url_chunks).tolist()
+        texts = pd.concat(text_chunks).tolist()
+        n     = len(urls)
 
-    reader    = pd.read_csv(
-        CORPUS_PATH,
-        usecols=lambda c: c in ["url", "description"],
-        chunksize=CHUNK,
-    )
-    rows_done = 0
-    t0        = time.time()
+        # Step 2 — TF-IDF
+        st.markdown(f'<p class="build-step-title">Step 2 of 3 &nbsp;·&nbsp; Building TF-IDF index ({n:,} articles)</p>',
+                    unsafe_allow_html=True)
+        vec = TfidfVectorizer(ngram_range=(1,2), stop_words="english",
+                              min_df=2, max_features=50000)
+        mat = _run_with_progress(lambda: vec.fit_transform(texts),
+                                 "Vectorising", 40)
 
-    for chunk in reader:
-        chunk["url"]         = chunk["url"].astype(str).str.strip()
-        chunk["description"] = chunk.get("description",
-                                         pd.Series([""] * len(chunk))).astype(str)
-        url_chunks.append(chunk["url"])
-        text_chunks.append(_vectorized_strip(chunk["description"]))
-        rows_done += len(chunk)
-
-        frac    = min(rows_done / total_rows, 1.0)
-        elapsed = time.time() - t0
-        eta     = (elapsed / frac * (1 - frac)) if frac > 0.01 else 0
-        prog1.progress(frac)
-        info1.markdown(
-            f'<span style="font-size:.85rem;color:#475569;">'
-            f'📂 <b>{rows_done:,}</b> / <b>{total_rows:,}</b> rows &nbsp;·&nbsp; {_fmt_eta(eta)}</span>',
-            unsafe_allow_html=True,
-        )
-
-    prog1.empty(); info1.empty()
-    urls  = pd.concat(url_chunks).tolist()
-    texts = pd.concat(text_chunks).tolist()
-    n     = len(urls)
-
-    # Step 2 — fit TF-IDF with timed progress bar + ETA
-    st.markdown(f"**Step 2 / 3 — Fitting TF-IDF on {n:,} articles…**")
-    vec = TfidfVectorizer(
-        ngram_range=(1, 2),
-        stop_words="english",
-        min_df=2,
-        max_features=50000,
-    )
-    mat = _run_with_progress(
-        lambda: vec.fit_transform(texts),
-        label="Building TF-IDF matrix",
-        est_seconds=40,
-    )
-
-    # Step 3 — save to disk with timed progress bar + ETA
-    st.markdown("**Step 3 / 3 — Saving index to disk…**")
-    _run_with_progress(
-        lambda: _save_to_disk(key, vec, mat, urls),
-        label="Writing index files",
-        est_seconds=15,
-    )
+        # Step 3 — save
+        st.markdown('<p class="build-step-title">Step 3 of 3 &nbsp;·&nbsp; Saving to disk</p>',
+                    unsafe_allow_html=True)
+        _run_with_progress(lambda: _save_to_disk(key, vec, mat, urls),
+                           "Writing files", 15)
 
     st.session_state["corpus_urls"] = urls
     st.session_state["corpus_vec"]  = vec
@@ -370,45 +414,49 @@ def _ensure_corpus_index():
 # Sidebar
 # ─────────────────────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.markdown("### ⚙️ Settings")
+    st.markdown('<p class="sidebar-logo">KollegeApply</p>', unsafe_allow_html=True)
+    st.markdown("**Plag Checker Settings**")
     st.divider()
-    dup_threshold = st.slider("Duplicate threshold (%)", 20, 100, 65)
+
+    dup_threshold = st.slider("Duplicate threshold", 20, 100, 65,
+                              format="%d%%",
+                              help="Articles above this % similarity are flagged as duplicates")
 
     st.divider()
-    run_web = st.checkbox("Also check against the open web", value=False)
+    st.markdown("**Web check** *(optional)*")
+    run_web = st.checkbox("Check against open web", value=False)
     if run_web:
         n_passages   = st.slider("Passages per article", 4, 20, 8)
-        web_thresh   = st.slider("Match strictness (%)", 70, 100, 85)
-        own_domain   = st.text_input("Your domain (skipped)", "kollegeapply.com")
-        excl_domains = st.text_area("Other ignored domains",
+        web_thresh   = st.slider("Match threshold", 70, 100, 85, format="%d%%")
+        own_domain   = st.text_input("Your domain (excluded)", "kollegeapply.com")
+        excl_domains = st.text_area("Other excluded domains",
                                     "wikipedia.org\nyoutube.com", height=60)
 
     st.divider()
-    top_n = st.number_input("Max results to show", 10, 5000, 200)
-    st.caption(
-        "**Similarity guide:**  \n"
-        "🟢 **<40 %** unique  \n"
-        "🟡 **40–65 %** review  \n"
-        "🔴 **>65 %** duplicate"
+    top_n = st.number_input("Max results", 10, 5000, 200)
+
+    st.divider()
+    st.markdown(
+        '<small>'
+        '<b style="color:#059669">●</b> &lt;40% unique &nbsp; '
+        '<b style="color:#D97706">●</b> 40–65% review &nbsp; '
+        '<b style="color:#DC2626">●</b> &gt;65% duplicate'
+        '</small>',
+        unsafe_allow_html=True,
     )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Hero
+# Page header
 # ─────────────────────────────────────────────────────────────────────────────
-st.markdown("""
-<div class="hero">
-  <h1>🔁 Internal Plagiarism Checker</h1>
-  <p>Upload a CSV of <b>new articles</b> to instantly check them against
-     the KollegeApply article database · get per-article duplicate verdicts</p>
-  <div class="chips">
-    <span class="chip">📚 75 k article corpus — pre-loaded</span>
-    <span class="chip">📄 Upload new CSV to check</span>
-    <span class="chip">⚡ HTML parsed — no URL fetching needed</span>
-    <span class="chip">🔴 Per-article verdict + export</span>
-  </div>
-</div>
-""", unsafe_allow_html=True)
+st.markdown(
+    '<div class="page-header">'
+    '<h1>Internal Plagiarism Checker</h1>'
+    '<p>Upload a CSV of new articles to check them against the KollegeApply article database.'
+    ' Results show per-article similarity scores and closest matching existing article.</p>'
+    '</div>',
+    unsafe_allow_html=True,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -416,13 +464,13 @@ st.markdown("""
 # ─────────────────────────────────────────────────────────────────────────────
 if not os.path.exists(CORPUS_PATH):
     st.markdown(
-        f'<div class="corpus-err">❌ Corpus file not found at '
-        f'<code>{CORPUS_PATH}</code> — contact admin.</div>',
+        f'<div class="status-bar error"><span class="dot"></span>'
+        f'Corpus file not found at <code>{CORPUS_PATH}</code></div>',
         unsafe_allow_html=True,
     )
     st.stop()
 
-_ensure_corpus_index()   # builds with progress bars on first run, no-op after
+_ensure_corpus_index()
 
 corpus_urls = st.session_state["corpus_urls"]
 corpus_vec  = st.session_state["corpus_vec"]
@@ -430,32 +478,34 @@ corpus_mat  = st.session_state["corpus_mat"]
 n_corp      = len(corpus_urls)
 
 st.markdown(
-    f'<div class="corpus-ok">📚 Reference corpus ready · '
-    f'<b>{n_corp:,} articles</b> · TF-IDF index pre-built</div>',
+    f'<div class="status-bar"><span class="dot"></span>'
+    f'Reference corpus ready &nbsp;·&nbsp; <b>{n_corp:,} articles</b> indexed</div>',
     unsafe_allow_html=True,
 )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 1 — Upload new articles
+# Section 1 — Upload
 # ─────────────────────────────────────────────────────────────────────────────
-step(1, "Upload new articles to check")
-
-st.markdown(
-    '<div class="callout">Upload a CSV of the <b>new articles</b> you want to verify. '
-    'Required column: <code>url</code>. '
-    'Optional: <code>description</code> (HTML — if missing, fetched from URL).'
-    '</div>',
-    unsafe_allow_html=True,
-)
+section(1, "Upload articles to check")
 
 new_df = None
-with st.container(border=True):
-    new_src = st.radio("Input method", ["📄 Upload CSV", "📋 Paste URLs"],
-                       horizontal=True, key="new_src")
+new_src = st.radio("Input method", ["Upload CSV", "Paste URLs"],
+                   horizontal=True, key="new_src",
+                   label_visibility="collapsed")
 
-    if new_src == "📄 Upload CSV":
-        new_file = st.file_uploader("Upload new articles CSV", type=["csv"], key="new_upload")
+with st.container(border=True):
+    if new_src == "Upload CSV":
+        new_file = st.file_uploader(
+            "Drop your CSV here",
+            type=["csv"], key="new_upload",
+            label_visibility="collapsed",
+        )
+        st.markdown(
+            '<p class="upload-hint">Required column: <code>url</code> &nbsp;·&nbsp; '
+            'Optional: <code>description</code> (HTML content — avoids URL fetching)</p>',
+            unsafe_allow_html=True,
+        )
         if new_file:
             try:
                 raw_new = pd.read_csv(new_file)
@@ -467,7 +517,7 @@ with st.container(border=True):
                 if err2:
                     st.warning(err2)
                     mc1, mc2 = st.columns(2)
-                    url_c  = mc1.selectbox("URL column",         list(raw_new.columns), key="nu")
+                    url_c  = mc1.selectbox("URL column", list(raw_new.columns), key="nu")
                     desc_c = mc2.selectbox("Description column",
                                            ["(none)"] + list(raw_new.columns), key="nd")
                     rename = {url_c: "url"}
@@ -479,66 +529,68 @@ with st.container(border=True):
                     new_df["url"]         = new_df["url"].astype(str).str.strip()
                     new_df["description"] = new_df["description"].astype(str).fillna("")
                     has_desc = (new_df["description"].str.strip().str.len() > 10).sum()
-                    st.success(
-                        f"✅ {len(new_df):,} articles ready · "
-                        f"{has_desc} have HTML · "
-                        f"{len(new_df)-has_desc} will be fetched from URL"
-                    )
+                    no_desc  = len(new_df) - has_desc
+                    parts = [f"**{len(new_df):,}** articles loaded"]
+                    if has_desc: parts.append(f"{has_desc} with HTML content")
+                    if no_desc:  parts.append(f"{no_desc} will be fetched")
+                    st.success("  ·  ".join(parts))
     else:
-        pasted = st.text_area("One URL per line", height=140,
-                              placeholder="https://…\nhttps://…")
+        pasted = st.text_area("One URL per line", height=120,
+                              placeholder="https://www.kollegeapply.com/…")
         if pasted.strip():
-            urls = [u.strip() for u in pasted.splitlines()
-                    if u.strip().startswith("http")]
-            if urls:
-                new_df = pd.DataFrame({"url": urls, "description": ""})
-                st.success(f"✅ {len(urls)} URLs (content will be fetched from each URL)")
+            urls_list = [u.strip() for u in pasted.splitlines()
+                         if u.strip().startswith("http")]
+            if urls_list:
+                new_df = pd.DataFrame({"url": urls_list, "description": ""})
+                st.success(f"**{len(urls_list)}** URLs — content will be fetched")
             else:
-                st.error("No valid URLs found.")
+                st.error("No valid URLs found (must start with http).")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 2 — Run
+# Section 2 — Run
 # ─────────────────────────────────────────────────────────────────────────────
 if new_df is not None and len(new_df) > 0:
-    step(2, "Run check")
+    section(2, "Run check")
 
-    with st.container(border=True):
-        n_new   = len(new_df)
-        n_fetch = int((new_df["description"].str.strip().str.len() <= 10).sum())
-        est_sec = n_new * 0.5 + n_fetch * 4
-        if run_web:
-            est_sec += n_new * n_passages * 5
+    n_new   = len(new_df)
+    n_fetch = int((new_df["description"].str.strip().str.len() <= 10).sum())
+    est_sec = n_new * 0.5 + n_fetch * 4
+    if run_web:
+        est_sec += n_new * n_passages * 5
 
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("New articles",  n_new)
-        c2.metric("Corpus size",   f"{n_corp:,}")
-        c3.metric("URLs to fetch", n_fetch)
-        c4.metric("Est. time",
-                  f"~{max(1,round(est_sec/60))} min" if est_sec > 60
-                  else f"~{int(est_sec)}s")
+    # stats row
+    est_label = (f"~{max(1,round(est_sec/60))} min" if est_sec > 60
+                 else f"~{int(est_sec)}s")
+    st.markdown(
+        f'<div class="stat-row">'
+        f'<div class="stat-tile indigo"><div class="sv">{n_new}</div><div class="sl">New articles</div></div>'
+        f'<div class="stat-tile"><div class="sv">{n_corp:,}</div><div class="sl">Corpus size</div></div>'
+        f'<div class="stat-tile"><div class="sv">{n_fetch}</div><div class="sl">URLs to fetch</div></div>'
+        f'<div class="stat-tile"><div class="sv">{est_label}</div><div class="sl">Est. time</div></div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
-        if n_fetch > 0:
-            st.markdown(
-                '<div class="callout warn">⚠️ Articles without a <code>description</code> '
-                'column will be fetched from the URL — this is slower.</div>',
-                unsafe_allow_html=True,
-            )
+    if n_fetch > 0:
+        st.markdown(
+            '<div class="callout warn">Articles without a <code>description</code> column '
+            'will be fetched from their URL — add HTML content to speed this up.</div>',
+            unsafe_allow_html=True,
+        )
 
-        run_btn = st.button("🚀 Run check", type="primary",
-                            use_container_width=True, key="run_btn")
+    run_btn = st.button("Run check", type="primary", use_container_width=True, key="run_btn")
 
     if run_btn:
-        # ── extract text for new articles ─────────────────────────────────────
-        with st.status("📄 Preparing new articles…", expanded=True) as s2:
+        # prepare new articles
+        with st.status("Preparing articles…", expanded=True) as s2:
             prog = st.progress(0.0)
             cur  = st.empty()
             new_texts, new_wc = [], []
             for i, row in enumerate(new_df.itertuples(), 1):
                 cur.markdown(
-                    f'<div style="font-size:.88rem;color:#1e293b;">'
-                    f'📄 Article <b>{i}</b> of <b>{n_new}</b> &nbsp;·&nbsp; '
-                    f'<span style="color:#64748b;">{row.url}</span></div>',
+                    f'<p style="font-size:.83rem;color:#6B7280;margin:0;">'
+                    f'Article {i} of {n_new} &nbsp;·&nbsp; {row.url}</p>',
                     unsafe_allow_html=True,
                 )
                 desc = str(row.description).strip()
@@ -547,62 +599,61 @@ if new_df is not None and len(new_df) > 0:
                 new_wc.append(len(text.split()))
                 prog.progress(i / n_new)
             cur.empty()
-            s2.update(label=f"✅ {n_new} articles ready",
+            s2.update(label=f"Articles ready  ·  {n_new} processed",
                       state="complete", expanded=False)
 
-        # ── similarity: transform new articles with pre-built corpus index ────
-        with st.status("🔁 Computing similarity…", expanded=False) as s3:
-            valid_new = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
+        # similarity
+        with st.status("Computing similarity…", expanded=False) as s3:
+            valid_new   = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
             sim_results = [(0.0, 0)] * n_new
-
             if valid_new and corpus_mat.shape[0] > 0:
-                valid_texts_only = [t for _, t in valid_new]
-                # transform only — vectorizer is already fitted on the corpus
-                new_mat = corpus_vec.transform(valid_texts_only)
+                vt      = [t for _, t in valid_new]
+                new_mat = corpus_vec.transform(vt)
                 sims    = cosine_similarity(new_mat, corpus_mat)
                 for ni, (orig_i, _) in enumerate(valid_new):
                     best_j  = int(sims[ni].argmax())
                     best_sc = round(float(sims[ni, best_j]) * 100, 1)
                     sim_results[orig_i] = (best_sc, best_j)
+            s3.update(label="Similarity computed", state="complete")
 
-            s3.update(label="✅ Similarity computed", state="complete")
-
-        # ── optional web check ────────────────────────────────────────────────
+        # optional web check
         web_res = {}
         if run_web:
             excl = {d.strip().lower() for d in excl_domains.splitlines() if d.strip()}
             excl.add(own_domain.strip().lower().replace("www.", ""))
-            with st.status(f"🌐 Web-checking {n_new} articles…", expanded=True) as sw:
+            with st.status(f"Web check — {n_new} articles…", expanded=True) as sw:
                 wp = st.progress(0.0)
                 wt = st.empty()
                 for i, (row, txt) in enumerate(zip(new_df.itertuples(), new_texts), 1):
-                    wt.markdown(f"**{i}/{n_new}** · `{row.url}`")
+                    wt.markdown(
+                        f'<p style="font-size:.83rem;color:#6B7280;margin:0;">'
+                        f'{i}/{n_new} &nbsp;·&nbsp; {row.url}</p>',
+                        unsafe_allow_html=True,
+                    )
                     try:
-                        res, _ = check_article(
-                            row.url, n_passages, web_thresh, excl, 25,
-                            preloaded_text=txt,
-                        )
+                        res, _ = check_article(row.url, n_passages, web_thresh,
+                                               excl, 25, preloaded_text=txt)
                     except Exception as e:
                         res = {"plagiarism_score": None, "verdict": f"Error: {e}",
                                "top_sources": "", "matches": []}
                     web_res[row.url] = res
                     wp.progress(i / n_new)
                 wt.empty()
-                sw.update(label="✅ Web check done", state="complete", expanded=False)
+                sw.update(label="Web check complete", state="complete", expanded=False)
 
-        # ── assemble results ──────────────────────────────────────────────────
+        # assemble
         final_rows = []
         for row, txt, wc, (sc, ci) in zip(
             new_df.itertuples(), new_texts, new_wc, sim_results
         ):
             corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
             wr       = web_res.get(row.url, {})
-            _, icon, vlabel = verdict_for(sc, dup_threshold)
+            cls, vlabel = verdict_for(sc, dup_threshold)[:2]
             final_rows.append({
                 "url":                    row.url,
                 "word_count":             wc,
                 "similarity_to_corpus_%": sc,
-                "verdict":                f"{icon} {vlabel}",
+                "verdict":                vlabel,
                 "matched_existing_url":   corp_url,
                 "web_plag_score":         wr.get("plagiarism_score"),
                 "web_verdict":            wr.get("verdict", ""),
@@ -614,11 +665,15 @@ if new_df is not None and len(new_df) > 0:
         st.rerun()
 
 else:
-    st.info("👆 Upload a CSV of new articles to begin.", icon="ℹ️")
+    if new_df is None:
+        st.markdown(
+            '<div class="callout">Upload a CSV or paste URLs above to get started.</div>',
+            unsafe_allow_html=True,
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 3 — Results
+# Section 3 — Results
 # ─────────────────────────────────────────────────────────────────────────────
 results = st.session_state.get("results")
 if results:
@@ -627,64 +682,72 @@ if results:
         for r in results
     ])
 
-    h1, h2 = st.columns([6, 1], vertical_alignment="bottom")
+    # header row
+    h1, h2 = st.columns([5, 1], vertical_alignment="bottom")
     with h1:
-        step(3, "Results")
+        section(3, "Results")
     with h2:
-        if st.button("🗑️ Clear results", use_container_width=True):
+        if st.button("Clear", use_container_width=True):
             st.session_state.pop("results", None)
             st.rerun()
 
     # summary tiles
-    n_dup = int((rdf["similarity_to_corpus_%"] >= dup_threshold).sum())
-    n_rev = int(((rdf["similarity_to_corpus_%"] >= 40) &
-                 (rdf["similarity_to_corpus_%"] < dup_threshold)).sum())
-    n_ok  = int((rdf["similarity_to_corpus_%"] < 40).sum())
-    avg_s = f"{rdf['similarity_to_corpus_%'].mean():.1f}%"
+    n_dup  = int((rdf["similarity_to_corpus_%"] >= dup_threshold).sum())
+    n_rev  = int(((rdf["similarity_to_corpus_%"] >= 40) &
+                  (rdf["similarity_to_corpus_%"] < dup_threshold)).sum())
+    n_ok   = int((rdf["similarity_to_corpus_%"] < 40).sum())
+    avg_s  = f"{rdf['similarity_to_corpus_%'].mean():.1f}%"
 
-    cols = st.columns(5)
-    for col, (val, lab, cls) in zip(cols, [
-        (len(rdf),  "Checked",                         "blue"),
-        (avg_s,     "Avg similarity",                   "blue"),
-        (n_dup,     f"🔴 Duplicates (≥{dup_threshold}%)", "red"),
-        (n_rev,     "🟡 Review needed",                 "amber"),
-        (n_ok,      "🟢 Unique",                        "green"),
-    ]):
-        col.markdown(
-            f'<div class="mt {cls}"><div class="val">{val}</div>'
-            f'<div class="lab">{lab}</div></div>',
-            unsafe_allow_html=True,
-        )
-    st.write("")
+    st.markdown(
+        f'<div class="stat-row">'
+        f'<div class="stat-tile"><div class="sv">{len(rdf)}</div><div class="sl">Checked</div></div>'
+        f'<div class="stat-tile"><div class="sv">{avg_s}</div><div class="sl">Avg similarity</div></div>'
+        f'<div class="stat-tile red"><div class="sv">{n_dup}</div><div class="sl">Duplicates ≥{dup_threshold}%</div></div>'
+        f'<div class="stat-tile amber"><div class="sv">{n_rev}</div><div class="sl">Review needed</div></div>'
+        f'<div class="stat-tile green"><div class="sv">{n_ok}</div><div class="sl">Unique</div></div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     if n_dup:
-        st.error(
-            f"⚠️ **{n_dup} article{'s' if n_dup>1 else ''}** "
-            f"{'are' if n_dup>1 else 'is'} ≥{dup_threshold}% similar to an existing article.",
-            icon="🔴",
+        st.markdown(
+            f'<div class="alert-banner">'
+            f'<span style="font-size:1rem;">⚠</span> '
+            f'<b>{n_dup} article{"s" if n_dup>1 else ""}</b> '
+            f'{"are" if n_dup>1 else "is"} ≥{dup_threshold}% similar to existing content'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+    elif results:
+        st.markdown(
+            '<div class="alert-banner ok">All articles are below the duplicate threshold.</div>',
+            unsafe_allow_html=True,
         )
 
+    # view tabs
     view = st.segmented_control(
-        "View",
-        ["📋 All results", "🔴 Duplicates only", "🌐 Web plagiarism"],
-        default="📋 All results",
-        label_visibility="collapsed",
-    ) or "📋 All results"
+        "View", ["All results", "Duplicates only", "Web plagiarism"],
+        default="All results", label_visibility="collapsed",
+    ) or "All results"
 
-    if view in ("📋 All results", "🔴 Duplicates only"):
-        show = results if view == "📋 All results" else [
+    # ── table + cards ─────────────────────────────────────────────────────────
+    if view in ("All results", "Duplicates only"):
+        show = results if view == "All results" else [
             r for r in results if r["similarity_to_corpus_%"] >= dup_threshold
         ]
         show = sorted(show, key=lambda r: r["similarity_to_corpus_%"], reverse=True)
         show = show[:int(top_n)]
 
         if not show:
-            st.success("✅ No duplicates at the current threshold.", icon="✅")
+            st.markdown(
+                '<div class="callout success">No duplicates found at the current threshold.</div>',
+                unsafe_allow_html=True,
+            )
         else:
             tdf = pd.DataFrame([{
-                "New Article":      r["url"],
+                "Article":          r["url"],
                 "Words":            r["word_count"],
-                "Similarity %":     r["similarity_to_corpus_%"],
+                "Similarity":       r["similarity_to_corpus_%"],
                 "Verdict":          r["verdict"],
                 "Closest existing": r["matched_existing_url"],
             } for r in show])
@@ -692,40 +755,49 @@ if results:
             st.dataframe(
                 tdf, hide_index=True, use_container_width=True,
                 column_config={
-                    "New Article":      st.column_config.LinkColumn(width="large"),
+                    "Article":          st.column_config.LinkColumn(width="large"),
                     "Words":            st.column_config.NumberColumn(width="small"),
-                    "Similarity %":     st.column_config.ProgressColumn(
+                    "Similarity":       st.column_config.ProgressColumn(
                         min_value=0, max_value=100, format="%.0f%%", width="small"),
-                    "Verdict":          st.column_config.TextColumn(width="medium"),
+                    "Verdict":          st.column_config.TextColumn(width="small"),
                     "Closest existing": st.column_config.LinkColumn(width="large"),
                 },
             )
 
+            # detail cards for flagged
             flagged = [r for r in show if r["similarity_to_corpus_%"] >= 40]
             if flagged:
-                st.markdown("#### Detailed cards")
+                st.markdown(
+                    '<p style="font-size:.8rem;font-weight:600;letter-spacing:.05em;'
+                    'text-transform:uppercase;color:#9CA3AF;margin:1.25rem 0 .6rem;">Detail view</p>',
+                    unsafe_allow_html=True,
+                )
                 for r in flagged:
-                    sc = r["similarity_to_corpus_%"]
-                    cls, icon, vlabel = verdict_for(sc, dup_threshold)
-                    new_e  = html_module.escape(r["url"])
-                    corp_u = html_module.escape(r["matched_existing_url"], quote=True)
+                    sc  = r["similarity_to_corpus_%"]
+                    cls, vlabel = verdict_for(sc, dup_threshold)[:2]
+                    new_e   = html_module.escape(r["url"])
+                    corp_u  = html_module.escape(r["matched_existing_url"], quote=True)
                     corp_ue = html_module.escape(r["matched_existing_url"])
                     st.markdown(
-                        f'<div class="res-card {cls}">'
-                        f'<div class="rcscore">{sc:.0f}%</div>'
-                        f'<div class="rcbody">'
-                        f'<b>New:</b> <a href="{new_e}" target="_blank">{new_e}</a><br>'
-                        f'<b>Matches:</b> <a href="{corp_u}" target="_blank">{corp_ue}</a>'
-                        f'<div class="rcmeta">{icon} {vlabel} · {r["word_count"]:,} words</div>'
+                        f'<div class="rc {cls}">'
+                        f'<div class="rc-pct">{sc:.0f}%</div>'
+                        f'<div class="rc-body">'
+                        f'<div class="rc-label">New article</div>'
+                        f'<a href="{new_e}" target="_blank">{new_e}</a>'
+                        f'<span class="rc-badge {cls}">{vlabel}</span>'
+                        f'<div class="rc-label" style="margin-top:.6rem;">Matches existing</div>'
+                        f'<a href="{corp_u}" target="_blank">{corp_ue}</a>'
+                        f'<div class="rc-meta">{r["word_count"]:,} words</div>'
                         f'</div></div>',
                         unsafe_allow_html=True,
                     )
 
-    else:  # web plagiarism
+    # ── web plagiarism ────────────────────────────────────────────────────────
+    else:
         if not run_web:
             st.markdown(
-                '<div class="callout">Enable <b>web plagiarism check</b> in the sidebar '
-                'and re-run to see web results here.</div>',
+                '<div class="callout">Enable <b>Check against open web</b> in the sidebar '
+                'and re-run to see web results.</div>',
                 unsafe_allow_html=True,
             )
         else:
@@ -734,19 +806,19 @@ if results:
                 st.info("No web results available.")
             else:
                 wdf = pd.DataFrame([{
-                    "Article":         r["url"],
-                    "Web plag %":      r["web_plag_score"],
-                    "Web verdict":     r["web_verdict"],
-                    "Top web sources": r["top_web_sources"],
-                } for r in web_show]).sort_values("Web plag %", ascending=False)
+                    "Article":     r["url"],
+                    "Web score":   r["web_plag_score"],
+                    "Verdict":     r["web_verdict"],
+                    "Top sources": r["top_web_sources"],
+                } for r in web_show]).sort_values("Web score", ascending=False)
                 st.dataframe(
                     wdf, hide_index=True, use_container_width=True,
                     column_config={
                         "Article":     st.column_config.LinkColumn(width="large"),
-                        "Web plag %":  st.column_config.ProgressColumn(
+                        "Web score":   st.column_config.ProgressColumn(
                             min_value=0, max_value=100, format="%.0f%%", width="small"),
-                        "Web verdict": st.column_config.TextColumn(width="medium"),
-                        "Top web sources": st.column_config.TextColumn(width="large"),
+                        "Verdict":     st.column_config.TextColumn(width="medium"),
+                        "Top sources": st.column_config.TextColumn(width="large"),
                     },
                 )
                 for r in web_show:
@@ -755,29 +827,33 @@ if results:
                             for m in r["_matches"]:
                                 src = html_module.escape(m["source"], quote=True)
                                 st.markdown(
-                                    f'<div style="border-left:4px solid #ef4444;padding:.6rem 1rem;'
-                                    f'background:#fef2f2;border-radius:0 10px 10px 0;margin:.4rem 0;">'
+                                    f'<div style="border-left:3px solid #DC2626;padding:.6rem 1rem;'
+                                    f'background:#FEF2F2;border-radius:0 8px 8px 0;margin:.4rem 0;'
+                                    f'font-size:.84rem;color:#374151;">'
                                     f'<i>"{html_module.escape(m["passage"])}"</i><br>'
-                                    f'<small style="color:#64748b;">{m["score"]:.0f}% match · '
-                                    f'<a href="{src}" target="_blank">{src}</a></small>'
-                                    f'</div>',
+                                    f'<span style="font-size:.75rem;color:#9CA3AF;">'
+                                    f'{m["score"]:.0f}% match &nbsp;·&nbsp; '
+                                    f'<a href="{src}" target="_blank" style="color:#4F46E5;">{src}</a>'
+                                    f'</span></div>',
                                     unsafe_allow_html=True,
                                 )
 
-    # download
+    # ── export ────────────────────────────────────────────────────────────────
     st.divider()
     export = rdf.drop(columns=["_matches", "_text"], errors="ignore").copy()
     export["risk_level"] = export["similarity_to_corpus_%"].apply(
         lambda s: "Duplicate" if s >= dup_threshold else "Review" if s >= 40 else "Unique"
     )
     fname = f"plag_results_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
-    st.download_button(
-        "⬇️ Download enriched results CSV",
+    dl_col, cap_col = st.columns([2, 5], vertical_alignment="center")
+    dl_col.download_button(
+        "Download results CSV",
         export.to_csv(index=False).encode("utf-8"),
-        fname, "text/csv", type="primary",
+        fname, "text/csv", type="primary", use_container_width=True,
     )
-    st.caption(
-        "Columns: url · word_count · similarity_to_corpus_% · verdict · "
-        "matched_existing_url · risk_level"
-        + (" · web_plag_score · web_verdict · top_web_sources" if run_web else "")
+    cap_col.markdown(
+        f'<p style="font-size:.78rem;color:#9CA3AF;margin:0;">'
+        f'url · word_count · similarity_to_corpus_% · verdict · matched_existing_url · risk_level'
+        f'{"  ·  web_plag_score · web_verdict · top_web_sources" if run_web else ""}</p>',
+        unsafe_allow_html=True,
     )
