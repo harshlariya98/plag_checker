@@ -141,13 +141,13 @@ html, body, [class*="css"] {
     background: var(--bg) !important;
     color: var(--text) !important;
 }
-.block-container { padding: 1.25rem 2rem 4rem !important; max-width: 1440px !important; }
+.block-container { padding: 3.75rem 2rem 4rem !important; max-width: 1440px !important; }
 
-/* Streamlit top bar */
+/* Streamlit top bar — make it transparent so the custom app-header is the real header */
 header[data-testid="stHeader"] {
-    background: var(--surface) !important;
-    border-bottom: 1px solid var(--border) !important;
-    box-shadow: var(--shadow-xs) !important;
+    background: transparent !important;
+    border-bottom: none !important;
+    box-shadow: none !important;
 }
 div[data-testid="stToolbar"] > div:last-child { display: none !important; }
 
