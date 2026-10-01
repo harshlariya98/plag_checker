@@ -157,6 +157,9 @@ div[data-testid="stToolbar"] > div:last-child { display: none !important; }
 @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.35} }
 
 /* ── Sidebar nav rail ──────────────────────────────────────────────────────── */
+/* Hide Streamlit's auto-generated page navigation list */
+section[data-testid="stSidebar"] [data-testid="stSidebarNav"] { display: none !important; }
+section[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] { display: none !important; }
 section[data-testid="stSidebar"] {
     background: var(--surface) !important;
     border-right: 1px solid var(--border) !important;
@@ -232,13 +235,21 @@ section[data-testid="stSidebar"] > div { padding-top: 0 !important; }
 }
 .page-intro p { font-size: 13.5px; color: var(--muted); margin: 0; line-height: 1.6; }
 
-/* ── Panel card ────────────────────────────────────────────────────────────── */
-.panel {
-    background: var(--surface); border-radius: var(--radius);
-    border: 1px solid var(--border); padding: 20px;
-    box-shadow: var(--shadow-xs); margin-bottom: 12px;
+/* ── Panel card (Streamlit bordered container) ─────────────────────────────── */
+div[data-testid="stVerticalBlockBorderWrapper"] {
+    border-radius: var(--radius) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface) !important;
+    box-shadow: var(--shadow-xs) !important;
+    overflow: visible !important;
+    margin-bottom: 12px !important;
     animation: fadeUp .35s ease both;
 }
+/* Add inner padding to bordered container content */
+div[data-testid="stVerticalBlockBorderWrapper"] > div > div[data-testid="stVerticalBlock"] {
+    padding: 4px 8px 8px !important;
+}
+
 .panel-hd {
     display: flex; align-items: center; gap: 9px;
     padding-bottom: 14px; margin-bottom: 16px;
@@ -739,172 +750,161 @@ left_col, right_col = st.columns([7, 3], gap="large")
 
 # ── Right column: settings panel ─────────────────────────────────────────────
 with right_col:
-    st.markdown(
-        '<div class="panel">'
-        '<div class="settings-hd">⚙️ Detection settings</div>',
-        unsafe_allow_html=True,
-    )
+    with st.container(border=True):
+        st.markdown('<div class="settings-hd">⚙️ Detection settings</div>', unsafe_allow_html=True)
 
-    # Similarity threshold
-    st.markdown('<div class="settings-block">', unsafe_allow_html=True)
-    st.markdown('<span class="settings-label">Similarity threshold</span>', unsafe_allow_html=True)
-    dup_threshold = st.slider(
-        "dup_thr", 20, 100, 65, format="%d%%",
-        label_visibility="collapsed",
-        help="Articles ≥ this similarity score are flagged as duplicates",
-    )
-    warn_w  = max(1, dup_threshold - 40)
-    dup_w   = max(1, 100 - dup_threshold)
-    st.markdown(
-        f'<div class="thr-bar">'
-        f'<div class="thr-ok" style="flex:40"></div>'
-        f'<div class="thr-warn" style="flex:{warn_w}"></div>'
-        f'<div class="thr-dup" style="flex:{dup_w}"></div>'
-        f'</div>'
-        f'<div class="thr-labels">'
-        f'<span><span class="tld" style="background:var(--green)"></span>Original&nbsp;&lt;40%</span>'
-        f'<span><span class="tld" style="background:var(--amber)"></span>Review</span>'
-        f'<span><span class="tld" style="background:var(--red)"></span>Dup ≥{dup_threshold}%</span>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+        # Similarity threshold
+        st.markdown('<span class="settings-label">Similarity threshold</span>', unsafe_allow_html=True)
+        dup_threshold = st.slider(
+            "Duplicate threshold", 20, 100, 65, format="%d%%",
+            label_visibility="collapsed",
+            help="Articles ≥ this similarity score are flagged as duplicates",
+        )
+        warn_w = max(1, dup_threshold - 40)
+        dup_w  = max(1, 100 - dup_threshold)
+        st.markdown(
+            f'<div class="thr-bar">'
+            f'<div class="thr-ok" style="flex:40"></div>'
+            f'<div class="thr-warn" style="flex:{warn_w}"></div>'
+            f'<div class="thr-dup" style="flex:{dup_w}"></div>'
+            f'</div>'
+            f'<div class="thr-labels">'
+            f'<span><span class="tld" style="background:var(--green)"></span>&lt;40% Original</span>'
+            f'<span><span class="tld" style="background:var(--red)"></span>≥{dup_threshold}% Dup</span>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
-    # Web verification
-    st.markdown('<div class="settings-block">', unsafe_allow_html=True)
-    st.markdown('<span class="settings-label">🌐 Web verification</span>', unsafe_allow_html=True)
-    run_web = st.checkbox("Check against open web", value=False)
-    st.markdown(
-        '<span class="settings-sub">Compare content against publicly accessible web pages.</span>',
-        unsafe_allow_html=True,
-    )
-    if run_web:
-        n_passages   = st.slider("Passages per article", 4, 20, 8, label_visibility="visible")
-        web_thresh   = st.slider("Match threshold", 70, 100, 85, format="%d%%")
-        own_domain   = st.text_input("Your domain (excluded)", "kollegeapply.com")
-        excl_domains = st.text_area("Other excluded domains",
-                                    "wikipedia.org\nyoutube.com", height=60)
-    st.markdown('</div>', unsafe_allow_html=True)
+        st.divider()
 
-    # Results
-    st.markdown('<div class="settings-block">', unsafe_allow_html=True)
-    st.markdown('<span class="settings-label">📊 Results</span>', unsafe_allow_html=True)
-    top_n = st.number_input("Max results shown", 10, 5000, 200, label_visibility="visible")
-    st.markdown(
-        '<span class="settings-sub">Maximum matches displayed per run.</span>',
-        unsafe_allow_html=True,
-    )
-    st.markdown('</div>', unsafe_allow_html=True)
+        # Web verification
+        st.markdown('<span class="settings-label">🌐 Web verification</span>', unsafe_allow_html=True)
+        run_web = st.checkbox("Check against open web", value=False)
+        st.markdown(
+            '<span class="settings-sub">Compare content against publicly accessible web pages.</span>',
+            unsafe_allow_html=True,
+        )
+        if run_web:
+            n_passages   = st.slider("Passages per article", 4, 20, 8)
+            web_thresh   = st.slider("Match threshold", 70, 100, 85, format="%d%%")
+            own_domain   = st.text_input("Your domain (excluded)", "kollegeapply.com")
+            excl_domains = st.text_area("Other excluded domains",
+                                        "wikipedia.org\nyoutube.com", height=60)
 
-    st.markdown('</div>', unsafe_allow_html=True)  # close .panel
+        st.divider()
+
+        # Results
+        st.markdown('<span class="settings-label">📊 Results</span>', unsafe_allow_html=True)
+        top_n = st.number_input("Max results shown", 10, 5000, 200)
+        st.markdown(
+            '<span class="settings-sub">Maximum matches displayed per run.</span>',
+            unsafe_allow_html=True,
+        )
 
 
 # ── Left column: upload + run ─────────────────────────────────────────────────
 with left_col:
 
     # ── Section 1: Upload ─────────────────────────────────────────────────────
-    st.markdown('<div class="panel">', unsafe_allow_html=True)
-    _panel_hd("1", "Add content to check", color="blue")
+    with st.container(border=True):
+        _panel_hd("1", "Add content to check", color="blue")
 
-    new_df = None
-    new_src = st.radio(
-        "Input method", ["📂  Upload CSV", "🔗  Paste URLs"],
-        horizontal=True, key="new_src",
-        label_visibility="collapsed",
-    )
-
-    if new_src == "📂  Upload CSV":
-        new_file = st.file_uploader(
-            "upload", type=["csv"], key="new_upload",
+        new_df = None
+        new_src = st.radio(
+            "Input method", ["📂  Upload CSV", "🔗  Paste URLs"],
+            horizontal=True, key="new_src",
             label_visibility="collapsed",
         )
-        st.markdown(
-            '<div class="schema-row">'
-            '<div class="schema-group"><span class="schema-tag">Required</span>'
-            '<span class="schema-key req">url</span></div>'
-            '<div class="schema-group"><span class="schema-tag">Optional</span>'
-            '<span class="schema-key">description</span></div>'
-            '</div>'
-            '<p class="schema-hint">Providing a <code>description</code> column (HTML content) avoids an additional page fetch per article.</p>',
-            unsafe_allow_html=True,
-        )
-        if new_file:
-            try:
-                raw_new = pd.read_csv(new_file)
-            except Exception as e:
-                st.error(f"Couldn't read that CSV: {e}")
-                raw_new = None
-            if raw_new is not None:
-                df2, err2 = normalise_new(raw_new)
-                if err2:
-                    st.warning(f"🤔 Column mapping needed — {err2}")
-                    mc1, mc2 = st.columns(2)
-                    url_c  = mc1.selectbox("URL column", list(raw_new.columns), key="nu")
-                    desc_c = mc2.selectbox("Description column",
-                                           ["(none)"] + list(raw_new.columns), key="nd")
-                    rename = {url_c: "url"}
-                    if desc_c != "(none)": rename[desc_c] = "description"
-                    df2 = raw_new.rename(columns=rename)
-                    if "description" not in df2.columns: df2["description"] = ""
-                new_df = df2
-                if new_df is not None:
-                    new_df["url"]         = new_df["url"].astype(str).str.strip()
-                    new_df["description"] = new_df["description"].astype(str).fillna("")
-                    has_desc = (new_df["description"].str.strip().str.len() > 10).sum()
-                    no_desc  = len(new_df) - has_desc
-                    parts = [f"✅ **{len(new_df):,}** articles loaded"]
-                    if has_desc: parts.append(f"{has_desc:,} have HTML content")
-                    if no_desc:  parts.append(f"{no_desc:,} will be fetched live")
-                    st.success("  ·  ".join(parts))
-    else:
-        pasted = st.text_area(
-            "One URL per line", height=140,
-            placeholder="https://www.kollegeapply.com/article/…\nhttps://…",
-        )
-        if pasted.strip():
-            urls_list = [u.strip() for u in pasted.splitlines()
-                         if u.strip().startswith("http")]
-            if urls_list:
-                new_df = pd.DataFrame({"url": urls_list, "description": ""})
-                st.success(f"✅ **{len(urls_list)}** URLs ready — content will be fetched live")
-            else:
-                st.error("No valid URLs found. Each line should start with http.")
 
-    st.markdown('</div>', unsafe_allow_html=True)  # close .panel
+        if new_src == "📂  Upload CSV":
+            new_file = st.file_uploader(
+                "upload", type=["csv"], key="new_upload",
+                label_visibility="collapsed",
+            )
+            st.markdown(
+                '<div class="schema-row">'
+                '<div class="schema-group"><span class="schema-tag">Required</span>'
+                '<span class="schema-key req">url</span></div>'
+                '<div class="schema-group"><span class="schema-tag">Optional</span>'
+                '<span class="schema-key">description</span></div>'
+                '</div>'
+                '<p class="schema-hint">Providing a <code>description</code> column (HTML content) avoids an additional page fetch per article.</p>',
+                unsafe_allow_html=True,
+            )
+            if new_file:
+                try:
+                    raw_new = pd.read_csv(new_file)
+                except Exception as e:
+                    st.error(f"Couldn't read that CSV: {e}")
+                    raw_new = None
+                if raw_new is not None:
+                    df2, err2 = normalise_new(raw_new)
+                    if err2:
+                        st.warning(f"🤔 Column mapping needed — {err2}")
+                        mc1, mc2 = st.columns(2)
+                        url_c  = mc1.selectbox("URL column", list(raw_new.columns), key="nu")
+                        desc_c = mc2.selectbox("Description column",
+                                               ["(none)"] + list(raw_new.columns), key="nd")
+                        rename = {url_c: "url"}
+                        if desc_c != "(none)": rename[desc_c] = "description"
+                        df2 = raw_new.rename(columns=rename)
+                        if "description" not in df2.columns: df2["description"] = ""
+                    new_df = df2
+                    if new_df is not None:
+                        new_df["url"]         = new_df["url"].astype(str).str.strip()
+                        new_df["description"] = new_df["description"].astype(str).fillna("")
+                        has_desc = (new_df["description"].str.strip().str.len() > 10).sum()
+                        no_desc  = len(new_df) - has_desc
+                        parts = [f"✅ **{len(new_df):,}** articles loaded"]
+                        if has_desc: parts.append(f"{has_desc:,} have HTML content")
+                        if no_desc:  parts.append(f"{no_desc:,} will be fetched live")
+                        st.success("  ·  ".join(parts))
+        else:
+            pasted = st.text_area(
+                "One URL per line", height=140,
+                placeholder="https://www.kollegeapply.com/article/…\nhttps://…",
+            )
+            if pasted.strip():
+                urls_list = [u.strip() for u in pasted.splitlines()
+                             if u.strip().startswith("http")]
+                if urls_list:
+                    new_df = pd.DataFrame({"url": urls_list, "description": ""})
+                    st.success(f"✅ **{len(urls_list)}** URLs ready — content will be fetched live")
+                else:
+                    st.error("No valid URLs found. Each line should start with http.")
 
     # ── Section 2: Run ────────────────────────────────────────────────────────
     if new_df is not None and len(new_df) > 0:
-        st.markdown('<div class="panel">', unsafe_allow_html=True)
-        _panel_hd("2", "Ready to run", "review before launching", color="coral")
+        with st.container(border=True):
+            _panel_hd("2", "Ready to run", "review before launching", color="coral")
 
-        n_new   = len(new_df)
-        n_fetch = int((new_df["description"].str.strip().str.len() <= 10).sum())
-        est_sec = n_new * 0.5 + n_fetch * 4
-        if run_web:
-            est_sec += n_new * n_passages * 5
+            n_new   = len(new_df)
+            n_fetch = int((new_df["description"].str.strip().str.len() <= 10).sum())
+            est_sec = n_new * 0.5 + n_fetch * 4
+            if run_web:
+                est_sec += n_new * n_passages * 5
 
-        est_label = (f"~{max(1,round(est_sec/60))} min" if est_sec > 60
-                     else f"~{int(est_sec)}s")
-        st.markdown(
-            f'<div class="info-row">'
-            f'<div class="info-tile"><div class="info-val">{n_new}</div><div class="info-lbl">Articles</div></div>'
-            f'<div class="info-tile"><div class="info-val">{n_corp:,}</div><div class="info-lbl">Corpus size</div></div>'
-            f'<div class="info-tile"><div class="info-val amber">{n_fetch}</div><div class="info-lbl">To fetch</div></div>'
-            f'<div class="info-tile"><div class="info-val purple">{est_label}</div><div class="info-lbl">Est. time</div></div>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-        if n_fetch > 0:
-            callout(
-                f"<b>{n_fetch} article{'s' if n_fetch>1 else ''}</b> missing HTML content — "
-                "will be fetched live (slower). Add a <code>description</code> column to skip this.",
-                kind="warn", icon="⚡",
+            est_label = (f"~{max(1,round(est_sec/60))} min" if est_sec > 60
+                         else f"~{int(est_sec)}s")
+            st.markdown(
+                f'<div class="info-row">'
+                f'<div class="info-tile"><div class="info-val">{n_new}</div><div class="info-lbl">Articles</div></div>'
+                f'<div class="info-tile"><div class="info-val">{n_corp:,}</div><div class="info-lbl">Corpus size</div></div>'
+                f'<div class="info-tile"><div class="info-val amber">{n_fetch}</div><div class="info-lbl">To fetch</div></div>'
+                f'<div class="info-tile"><div class="info-val purple">{est_label}</div><div class="info-lbl">Est. time</div></div>'
+                f'</div>',
+                unsafe_allow_html=True,
             )
 
-        run_btn = st.button("→  Run plagiarism check", type="primary",
-                            use_container_width=True, key="run_btn")
-        st.markdown('</div>', unsafe_allow_html=True)  # close .panel
+            if n_fetch > 0:
+                callout(
+                    f"<b>{n_fetch} article{'s' if n_fetch>1 else ''}</b> missing HTML content — "
+                    "will be fetched live (slower). Add a <code>description</code> column to skip this.",
+                    kind="warn", icon="⚡",
+                )
+
+            run_btn = st.button("→  Run plagiarism check", type="primary",
+                                use_container_width=True, key="run_btn")
 
         if run_btn:
             # prepare new articles
