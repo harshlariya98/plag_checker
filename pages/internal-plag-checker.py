@@ -11,7 +11,7 @@ import os
 import re
 import sys
 import threading
-from concurrent.futures import ThreadPoolExecutor, as_completed
+import time
 from datetime import datetime
 
 import joblib
@@ -22,16 +22,75 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from plag_utils import fetch_text, check_article, extract_text_from_html
+from plag_utils import fetch_text, check_article
 
 _TAG_RE = re.compile(r"<[^>]+>")
+_WS_RE  = re.compile(r"\s+")
 
-def _fast_strip(html_str):
-    """Strip HTML tags with a regex — ~50× faster than trafilatura for bulk use."""
-    if not html_str or len(html_str) < 10:
+def _fast_strip(s):
+    """Strip HTML tags — used for single articles (new CSV)."""
+    if not s or len(s) < 10:
         return ""
-    text = _TAG_RE.sub(" ", html_str)
-    return re.sub(r"\s+", " ", text).strip()
+    return _WS_RE.sub(" ", _TAG_RE.sub(" ", s)).strip()
+
+
+def _vectorized_strip(series):
+    """Vectorized HTML stripping on a pandas Series — C-speed, no Python loop."""
+    return (series
+            .str.replace(r"<[^>]+>", " ", regex=True)
+            .str.replace(r"\s+",    " ", regex=True)
+            .str.strip()
+            .fillna(""))
+
+
+def _fmt_eta(seconds):
+    seconds = max(0, int(seconds))
+    if seconds < 60:
+        return f"~{seconds}s remaining"
+    return f"~{seconds // 60}m {seconds % 60}s remaining"
+
+
+def _run_with_progress(fn, label, est_seconds):
+    """
+    Run fn() in a thread while showing a timed progress bar + ETA in the main thread.
+    Returns fn()'s return value.
+    """
+    holder = [None]
+    err    = [None]
+
+    def _worker():
+        try:
+            holder[0] = fn()
+        except Exception as e:
+            err[0] = e
+
+    t = threading.Thread(target=_worker, daemon=True)
+    t.start()
+
+    prog = st.progress(0.0)
+    info = st.empty()
+    start = time.time()
+
+    while t.is_alive():
+        elapsed  = time.time() - start
+        frac     = min(elapsed / est_seconds, 0.95)
+        remaining = max(0, est_seconds - elapsed)
+        prog.progress(frac)
+        info.markdown(
+            f'<span style="font-size:.85rem;color:#475569;">'
+            f'⏱ {label} · {_fmt_eta(remaining)}</span>',
+            unsafe_allow_html=True,
+        )
+        time.sleep(0.4)
+
+    t.join()
+    prog.progress(1.0)
+    info.empty()
+    prog.empty()
+
+    if err[0]:
+        raise err[0]
+    return holder[0]
 
 # ── paths ─────────────────────────────────────────────────────────────────────
 CORPUS_PATH = "/Users/harsh/Documents/final_data_plag.csv"
@@ -230,63 +289,76 @@ def _ensure_corpus_index():
         st.session_state["corpus_mat"]  = mat
         return
 
-    # ── slow path: build from scratch, then save to disk ─────────────────────
-    df    = load_corpus(CORPUS_PATH)
-    urls  = df["url"].tolist()
-    descs = df["description"].tolist()
-    n     = len(urls)
-
-    # Step A — parse HTML in parallel
+    # ── slow path: build from scratch, save to disk (runs once only) ─────────
     st.markdown(
         '<div class="callout"><b>Building index for the first time</b> — '
-        'saved to disk, loads in seconds every time after.</div>',
+        'saved to disk, loads in ~10 s every session after this.</div>',
         unsafe_allow_html=True,
     )
-    st.markdown("**Step 1 / 2 — Parsing article HTML…**")
-    prog_a    = st.progress(0.0)
-    counter_a = st.empty()
 
-    texts    = [""] * n
-    done     = threading.Event()
-    count_   = [0]
-    lock_    = threading.Lock()
+    # Step 1 — read CSV + strip HTML in chunks with real progress + ETA
+    st.markdown("**Step 1 / 3 — Reading corpus & stripping HTML…**")
+    prog1  = st.progress(0.0)
+    info1  = st.empty()
 
-    def _parse(args):
-        idx, html_str = args
-        result = _fast_strip(html_str)
-        with lock_:
-            count_[0] += 1
-        return idx, result
+    CHUNK = 10_000
+    url_chunks, text_chunks = [], []
 
-    n_workers = min(16, os.cpu_count() or 4)
-    with ThreadPoolExecutor(max_workers=n_workers) as pool:
-        futures = [pool.submit(_parse, (i, d)) for i, d in enumerate(descs)]
-        completed = 0
-        for fut in as_completed(futures):
-            idx, txt = fut.result()
-            texts[idx] = txt
-            completed += 1
-            if completed % 1000 == 0 or completed == n:
-                prog_a.progress(completed / n)
-                counter_a.markdown(
-                    f'<span style="font-size:.85rem;color:#475569;">'
-                    f'📄 <b>{completed:,}</b> / <b>{n:,}</b> articles parsed</span>',
-                    unsafe_allow_html=True,
-                )
-    prog_a.empty()
-    counter_a.empty()
+    with open(CORPUS_PATH, "rb") as f:
+        total_rows = sum(1 for _ in f) - 1
 
-    # Step B — fit TF-IDF and save
-    st.markdown("**Step 2 / 2 — Fitting TF-IDF index & saving to disk…**")
-    with st.spinner(f"Vectorising {n:,} articles…"):
-        vec = TfidfVectorizer(
-            ngram_range=(1, 2),
-            stop_words="english",
-            min_df=2,
-            max_features=50000,
+    reader    = pd.read_csv(
+        CORPUS_PATH,
+        usecols=lambda c: c in ["url", "description"],
+        chunksize=CHUNK,
+    )
+    rows_done = 0
+    t0        = time.time()
+
+    for chunk in reader:
+        chunk["url"]         = chunk["url"].astype(str).str.strip()
+        chunk["description"] = chunk.get("description",
+                                         pd.Series([""] * len(chunk))).astype(str)
+        url_chunks.append(chunk["url"])
+        text_chunks.append(_vectorized_strip(chunk["description"]))
+        rows_done += len(chunk)
+
+        frac    = min(rows_done / total_rows, 1.0)
+        elapsed = time.time() - t0
+        eta     = (elapsed / frac * (1 - frac)) if frac > 0.01 else 0
+        prog1.progress(frac)
+        info1.markdown(
+            f'<span style="font-size:.85rem;color:#475569;">'
+            f'📂 <b>{rows_done:,}</b> / <b>{total_rows:,}</b> rows &nbsp;·&nbsp; {_fmt_eta(eta)}</span>',
+            unsafe_allow_html=True,
         )
-        mat = vec.fit_transform(texts)
-        _save_to_disk(key, vec, mat, urls)
+
+    prog1.empty(); info1.empty()
+    urls  = pd.concat(url_chunks).tolist()
+    texts = pd.concat(text_chunks).tolist()
+    n     = len(urls)
+
+    # Step 2 — fit TF-IDF with timed progress bar + ETA
+    st.markdown(f"**Step 2 / 3 — Fitting TF-IDF on {n:,} articles…**")
+    vec = TfidfVectorizer(
+        ngram_range=(1, 2),
+        stop_words="english",
+        min_df=2,
+        max_features=50000,
+    )
+    mat = _run_with_progress(
+        lambda: vec.fit_transform(texts),
+        label="Building TF-IDF matrix",
+        est_seconds=40,
+    )
+
+    # Step 3 — save to disk with timed progress bar + ETA
+    st.markdown("**Step 3 / 3 — Saving index to disk…**")
+    _run_with_progress(
+        lambda: _save_to_disk(key, vec, mat, urls),
+        label="Writing index files",
+        est_seconds=15,
+    )
 
     st.session_state["corpus_urls"] = urls
     st.session_state["corpus_vec"]  = vec
