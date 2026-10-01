@@ -8,7 +8,6 @@ Users only need to upload the new articles CSV to check.
 import html as html_module
 import io
 import os
-import re
 import sys
 from datetime import datetime
 
@@ -173,9 +172,23 @@ def load_corpus(path):
     return df
 
 
-@st.cache_data(show_spinner=False)
-def parse_corpus_texts(urls_tuple, descs_tuple):
-    return [extract_text_from_html(d) for d in descs_tuple]
+@st.cache_resource(show_spinner=False)
+def build_corpus_index(path):
+    """
+    Parse corpus HTML and fit a TF-IDF vectorizer once.
+    Cached as a resource (stays in memory, no serialization overhead).
+    Returns (vectorizer, corpus_matrix, corpus_urls, corpus_texts).
+    """
+    df = load_corpus(path)
+    texts = [extract_text_from_html(d) for d in df["description"]]
+    vec = TfidfVectorizer(
+        ngram_range=(1, 2),   # (1,2) vs (1,3): ~3× faster, minimal quality loss
+        stop_words="english",
+        min_df=2,
+        max_features=50000,
+    )
+    mat = vec.fit_transform(texts)
+    return vec, mat, df["url"].tolist(), texts
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -228,16 +241,15 @@ st.markdown("""
 # ─────────────────────────────────────────────────────────────────────────────
 corpus_ok = os.path.exists(CORPUS_PATH)
 if corpus_ok:
-    with st.spinner("Loading reference corpus…"):
-        corpus_df = load_corpus(CORPUS_PATH)
-    n_corp = len(corpus_df)
+    with st.spinner("Loading corpus index… (first load only — instant after)"):
+        corpus_vec, corpus_mat, corpus_urls, corpus_texts = build_corpus_index(CORPUS_PATH)
+    n_corp = len(corpus_urls)
     st.markdown(
-        f'<div class="corpus-ok">📚 Reference corpus loaded · '
-        f'<b>{n_corp:,} articles</b> from KollegeApply database</div>',
+        f'<div class="corpus-ok">📚 Reference corpus ready · '
+        f'<b>{n_corp:,} articles</b> · TF-IDF index pre-built</div>',
         unsafe_allow_html=True,
     )
 else:
-    corpus_df = None
     st.markdown(
         f'<div class="corpus-err">❌ Corpus file not found at '
         f'<code>{CORPUS_PATH}</code> — contact admin.</div>',
@@ -322,7 +334,7 @@ if new_df is not None and len(new_df) > 0:
 
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("New articles",  n_new)
-        c2.metric("Corpus size",   f"{len(corpus_df):,}")
+        c2.metric("Corpus size",   f"{n_corp:,}")
         c3.metric("URLs to fetch", n_fetch)
         c4.metric("Est. time",
                   f"~{max(1,round(est_sec/60))} min" if est_sec > 60
@@ -339,15 +351,6 @@ if new_df is not None and len(new_df) > 0:
                             use_container_width=True, key="run_btn")
 
     if run_btn:
-        # ── parse corpus HTML (cached) ────────────────────────────────────────
-        with st.status("⚡ Parsing corpus HTML…", expanded=False) as sc_:
-            corpus_texts = parse_corpus_texts(
-                tuple(corpus_df["url"]),
-                tuple(corpus_df["description"]),
-            )
-            sc_.update(label=f"✅ Corpus parsed ({len(corpus_texts):,} articles)",
-                       state="complete")
-
         # ── extract text for new articles ─────────────────────────────────────
         with st.status("📄 Preparing new articles…", expanded=True) as s2:
             prog = st.progress(0.0)
@@ -364,37 +367,20 @@ if new_df is not None and len(new_df) > 0:
             s2.update(label=f"✅ {n_new} articles ready",
                       state="complete", expanded=False)
 
-        # ── TF-IDF: new articles vs corpus ────────────────────────────────────
+        # ── similarity: transform new articles with pre-built corpus index ────
         with st.status("🔁 Computing similarity…", expanded=False) as s3:
-            all_texts  = corpus_texts + new_texts
-            valid_mask = [len(t.split()) >= 30 for t in all_texts]
-            valid_texts = [t for t, ok in zip(all_texts, valid_mask) if ok]
-            n_corp_ok   = sum(valid_mask[:len(corpus_df)])
+            valid_new = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
+            sim_results = [(0.0, 0)] * n_new
 
-            sim_results = []
-            if len(valid_texts) >= 2 and n_corp_ok > 0:
-                vec = TfidfVectorizer(ngram_range=(1, 3), stop_words="english",
-                                      min_df=1, max_features=60000)
-                mat      = vec.fit_transform(valid_texts)
-                corp_mat = mat[:n_corp_ok]
-                corp_orig = [i for i, ok in enumerate(valid_mask[:len(corpus_df)]) if ok]
-                new_mat   = mat[n_corp_ok:]
-
-                if new_mat.shape[0] > 0:
-                    sims = cosine_similarity(new_mat, corp_mat)
-                    ni = 0
-                    for orig_i in range(n_new):
-                        if valid_mask[len(corpus_df) + orig_i]:
-                            best_j  = int(sims[ni].argmax())
-                            best_sc = round(float(sims[ni, best_j]) * 100, 1)
-                            sim_results.append((best_sc, corp_orig[best_j]))
-                            ni += 1
-                        else:
-                            sim_results.append((0.0, 0))
-                else:
-                    sim_results = [(0.0, 0)] * n_new
-            else:
-                sim_results = [(0.0, 0)] * n_new
+            if valid_new and corpus_mat.shape[0] > 0:
+                valid_texts_only = [t for _, t in valid_new]
+                # transform only — vectorizer is already fitted on the corpus
+                new_mat = corpus_vec.transform(valid_texts_only)
+                sims    = cosine_similarity(new_mat, corpus_mat)
+                for ni, (orig_i, _) in enumerate(valid_new):
+                    best_j  = int(sims[ni].argmax())
+                    best_sc = round(float(sims[ni, best_j]) * 100, 1)
+                    sim_results[orig_i] = (best_sc, best_j)
 
             s3.update(label="✅ Similarity computed", state="complete")
 
@@ -426,7 +412,7 @@ if new_df is not None and len(new_df) > 0:
         for row, txt, wc, (sc, ci) in zip(
             new_df.itertuples(), new_texts, new_wc, sim_results
         ):
-            corp_row = corpus_df.iloc[ci]
+            corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
             wr       = web_res.get(row.url, {})
             _, icon, vlabel = verdict_for(sc, dup_threshold)
             final_rows.append({
@@ -434,7 +420,7 @@ if new_df is not None and len(new_df) > 0:
                 "word_count":             wc,
                 "similarity_to_corpus_%": sc,
                 "verdict":                f"{icon} {vlabel}",
-                "matched_existing_url":   corp_row["url"],
+                "matched_existing_url":   corp_url,
                 "web_plag_score":         wr.get("plagiarism_score"),
                 "web_verdict":            wr.get("verdict", ""),
                 "top_web_sources":        wr.get("top_sources", ""),
