@@ -1,39 +1,28 @@
 """
 Internal Plagiarism Checker — /internal-plag-checker
 
-Workflow:
-  1. Load reference corpus  – your existing articles (CSV, SQL dump, or RDS)
-  2. Upload new articles     – CSV with url / entity / description columns
-  3. Run analysis            – compare each new article against the corpus
-  4. View results            – only for the new articles you uploaded
+Reference corpus is pre-loaded from a fixed local CSV.
+Users only need to upload the new articles CSV to check.
 """
 
 import html as html_module
 import io
+import os
 import re
 import sys
-import os
-import time
 from datetime import datetime
 
-import numpy as np
 import pandas as pd
-import requests
 import streamlit as st
-from bs4 import BeautifulSoup
-from rapidfuzz import fuzz
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from plag_utils import (
-    extract_text_from_html,
-    fetch_text,
-    check_article,
-)
+from plag_utils import extract_text_from_html, fetch_text, check_article
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Page config & CSS
+# ── fixed reference corpus path ───────────────────────────────────────────────
+CORPUS_PATH = "/Users/harsh/Documents/final_data_plag.csv"
+
 # ─────────────────────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="Internal Plag Checker · KollegeApply",
@@ -77,13 +66,18 @@ section[data-testid="stSidebar"] label {color:#94a3b8 !important; font-size:.8re
              font-size:.85rem; font-weight:700; flex-shrink:0;
              box-shadow:0 2px 8px rgba(63,81,181,.4);}
 
-.corpus-badge {
-    display:inline-flex; align-items:center; gap:.5rem;
-    background:#f0fdf4; border:1px solid #86efac; border-radius:10px;
-    padding:.55rem 1rem; font-size:.88rem; color:#14532d; font-weight:600;
-    margin:.6rem 0;
+.corpus-ok {
+    display:inline-flex; align-items:center; gap:.6rem;
+    background:#f0fdf4; border:1px solid #86efac; border-radius:12px;
+    padding:.65rem 1.1rem; font-size:.9rem; color:#14532d; font-weight:600;
+    margin:.4rem 0 1rem;
 }
-.corpus-badge.warn {background:#fffbeb; border-color:#fde68a; color:#78350f;}
+.corpus-err {
+    display:inline-flex; align-items:center; gap:.6rem;
+    background:#fef2f2; border:1px solid #fca5a5; border-radius:12px;
+    padding:.65rem 1.1rem; font-size:.9rem; color:#991b1b; font-weight:600;
+    margin:.4rem 0 1rem;
+}
 
 .mt {background:#fff; border-radius:14px; padding:1rem 1.25rem;
      border:1px solid #e2e8f0; box-shadow:0 1px 6px rgba(0,0,0,.05); text-align:center;}
@@ -95,27 +89,26 @@ section[data-testid="stSidebar"] label {color:#94a3b8 !important; font-size:.8re
 .mt.green .val {color:#16a34a;}
 .mt.blue  .val {color:#3f51b5;}
 
-.callout {background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;
-          padding:.85rem 1.1rem; font-size:.88rem; color:#1e3a5f;
-          line-height:1.55; margin:.5rem 0;}
-.callout b {color:#1e40af;}
+.callout      {background:#eff6ff; border:1px solid #bfdbfe; border-radius:12px;
+               padding:.85rem 1.1rem; font-size:.88rem; color:#1e3a5f;
+               line-height:1.55; margin:.5rem 0;}
+.callout b    {color:#1e40af;}
 .callout.warn {background:#fffbeb; border-color:#fde68a; color:#78350f;}
 
-.res-card {
-    background:#fff; border-radius:14px; padding:.9rem 1.2rem;
-    border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,.06); margin:.4rem 0;
-}
+.res-card        {background:#fff; border-radius:14px; padding:.9rem 1.2rem;
+                  border:1px solid #e2e8f0; box-shadow:0 2px 8px rgba(0,0,0,.06);
+                  margin:.4rem 0; display:flex; gap:1rem; align-items:flex-start;}
 .res-card.danger {border-left:4px solid #dc2626; background:#fef2f2;}
 .res-card.warn   {border-left:4px solid #d97706; background:#fffbeb;}
 .res-card.ok     {border-left:4px solid #16a34a; background:#f0fdf4;}
-.res-card .rcscore {font-size:1.5rem; font-weight:800; min-width:3.5rem; text-align:center;}
+.rcscore         {font-size:1.5rem; font-weight:800; min-width:3.5rem; text-align:center;}
 .res-card.danger .rcscore {color:#dc2626;}
 .res-card.warn   .rcscore {color:#d97706;}
 .res-card.ok     .rcscore {color:#16a34a;}
-.res-card .rcbody {flex:1; font-size:.88rem; color:#374151; line-height:1.6;}
-.res-card .rcbody a {color:#3f51b5; text-decoration:none;}
-.res-card .rcbody a:hover {text-decoration:underline;}
-.res-card .rcmeta {font-size:.78rem; color:#94a3b8; margin-top:.2rem;}
+.rcbody          {flex:1; font-size:.88rem; color:#374151; line-height:1.6;}
+.rcbody a        {color:#3f51b5; text-decoration:none;}
+.rcbody a:hover  {text-decoration:underline;}
+.rcmeta          {font-size:.78rem; color:#94a3b8; margin-top:.2rem;}
 
 .stButton > button[kind="primary"] {
     background:linear-gradient(135deg,#3f51b5,#7c4dff) !important;
@@ -148,96 +141,57 @@ def verdict_for(score, threshold):
     if score >= threshold:
         return "danger", "🔴", "Duplicate / high overlap"
     if score >= 40:
-        return "warn", "🟡", "Moderate overlap — review"
-    return "ok", "🟢", "Looks unique"
+        return "warn",   "🟡", "Moderate overlap — review"
+    return "ok",     "🟢", "Looks unique"
 
 
-def parse_sql_file(content_bytes):
-    """Extract rows from a MySQL/PostgreSQL SQL dump."""
-    try:
-        text = content_bytes.decode("utf-8", errors="replace")
-    except Exception:
-        return None, "Could not decode file as UTF-8."
-
-    # PostgreSQL COPY … FROM stdin
-    copy_m = re.search(
-        r"COPY\s+\S+\s*\(([^)]+)\)\s+FROM\s+stdin;\s*\n(.*?)\n\\\\.",
-        text, re.DOTALL | re.IGNORECASE,
-    )
-    if copy_m:
-        cols = [c.strip().strip('"').strip('`') for c in copy_m.group(1).split(",")]
-        rows = []
-        for line in copy_m.group(2).strip().splitlines():
-            vals = line.split("\t")
-            if len(vals) == len(cols):
-                rows.append(dict(zip(cols, vals)))
-        if rows:
-            return pd.DataFrame(rows), None
-
-    # INSERT INTO … VALUES …
-    insert_re = re.compile(
-        r"INSERT\s+INTO\s+[`\"]?\w+[`\"]?\s*\(([^)]+)\)\s+VALUES\s*(.+?)(?:;|$)",
-        re.IGNORECASE | re.DOTALL,
-    )
-    rows = []
-    col_names = None
-    for m in insert_re.finditer(text):
-        if col_names is None:
-            col_names = [c.strip().strip('`"\' ') for c in m.group(1).split(",")]
-        for t in re.finditer(r"\(([^()]*)\)", m.group(2)):
-            parts = re.split(r",(?=(?:[^']*'[^']*')*[^']*$)", t.group(1))
-            vals = [p.strip().strip("'\"").replace("\\'", "'") for p in parts]
-            if len(vals) == len(col_names):
-                rows.append(dict(zip(col_names, vals)))
-    if rows:
-        return pd.DataFrame(rows), None
-
-    return None, (
-        "Could not parse INSERT or COPY statements. "
-        "Please export as CSV or ensure standard SQL dump format."
-    )
-
-
-def load_df(file, label="file"):
-    name = file.name.lower()
-    content = file.read()
-    if name.endswith(".sql"):
-        df, err = parse_sql_file(content)
-        if err:
-            st.error(f"SQL parse error ({label}): {err}")
-            return None
-        return df
-    try:
-        return pd.read_csv(io.BytesIO(content))
-    except Exception as e:
-        st.error(f"Could not read {label}: {e}")
-        return None
-
-
-def normalise_df(df, require_desc=True):
-    """Map columns to url / entity / description. Returns (df, error)."""
+def normalise_new(df):
+    """Map columns of the user-uploaded CSV to url / entity / description."""
     url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
     ent_col  = smart_col(df, ["entity","entity_type","type","category","tag","section"])
     desc_col = smart_col(df, ["description","content","article","body","html",
                                "article_html","text","article_body"])
-    missing = []
     if not url_col:
-        missing.append("url")
-    if require_desc and not desc_col:
-        missing.append("description/html")
-    if missing:
-        return df, f"Missing columns: {missing}. Found: {list(df.columns)}"
-
+        return None, f"No URL column found. Columns: {list(df.columns)}"
     rename = {url_col: "url"}
     if ent_col:  rename[ent_col]  = "entity"
     if desc_col: rename[desc_col] = "description"
     df = df.rename(columns=rename)
     if "entity"      not in df.columns: df["entity"]      = "unknown"
     if "description" not in df.columns: df["description"] = ""
-    keep = ["url","entity","description"] + [
-        c for c in df.columns if c not in ("url","entity","description")
-    ]
-    return df[keep].copy(), None
+    return df[["url","entity","description"] +
+               [c for c in df.columns if c not in ("url","entity","description")]].copy(), None
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Load corpus (cached across reruns)
+# ─────────────────────────────────────────────────────────────────────────────
+@st.cache_data(show_spinner=False)
+def load_corpus(path):
+    df = pd.read_csv(path, usecols=lambda c: c in
+                     ["url","description","entity","entity_type","type","category"])
+    df["url"] = df["url"].astype(str).str.strip()
+    # normalise entity
+    ent = smart_col(df, ["entity","entity_type","type","category"])
+    if ent and ent != "entity":
+        df = df.rename(columns={ent: "entity"})
+    if "entity" not in df.columns:
+        # derive entity from URL slug suffix (e.g. -admission, -hostel)
+        df["entity"] = (
+            df["url"].str.rstrip("/")
+                     .str.split("/").str[-1]
+                     .str.extract(r"-([a-z]+)$", expand=False)
+                     .fillna("general")
+        )
+    if "description" not in df.columns:
+        df["description"] = ""
+    df["description"] = df["description"].astype(str)
+    return df
+
+
+@st.cache_data(show_spinner=False)
+def parse_corpus_texts(urls_tuple, descs_tuple):
+    return [extract_text_from_html(d) for d in descs_tuple]
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -246,31 +200,24 @@ def normalise_df(df, require_desc=True):
 with st.sidebar:
     st.markdown("### ⚙️ Settings")
     st.divider()
-
-    st.markdown("**🔁 Duplicate threshold**")
-    dup_threshold = st.slider(
-        "Flag as duplicate above (%)", 20, 100, 65,
-        help="New articles above this % similarity to any existing article are flagged.",
-    )
+    dup_threshold = st.slider("Duplicate threshold (%)", 20, 100, 65)
 
     st.divider()
-    st.markdown("**🌐 Web plagiarism (optional)**")
     run_web = st.checkbox("Also check against the open web", value=False)
     if run_web:
         n_passages   = st.slider("Passages per article", 4, 20, 8)
         web_thresh   = st.slider("Match strictness (%)", 70, 100, 85)
         own_domain   = st.text_input("Your domain (skipped)", "kollegeapply.com")
         excl_domains = st.text_area("Other ignored domains",
-                                    "wikipedia.org\nyoutube.com", height=70)
+                                    "wikipedia.org\nyoutube.com", height=60)
 
     st.divider()
-    st.markdown("**📊 Display**")
     top_n = st.number_input("Max results to show", 10, 5000, 200)
     st.caption(
         "**Similarity guide:**  \n"
-        "🟢 **<40 %** — unique  \n"
-        "🟡 **40–65 %** — review  \n"
-        "🔴 **>65 %** — duplicate"
+        "🟢 **<40 %** unique  \n"
+        "🟡 **40–65 %** review  \n"
+        "🔴 **>65 %** duplicate"
     )
 
 
@@ -280,182 +227,91 @@ with st.sidebar:
 st.markdown("""
 <div class="hero">
   <h1>🔁 Internal Plagiarism Checker</h1>
-  <p>Load your existing article database once as a <b>reference corpus</b> ·
-     then upload any new CSV to check against it ·
-     get per-article duplicate verdicts in seconds</p>
+  <p>Upload a CSV of <b>new articles</b> to instantly check them against
+     the KollegeApply article database · get per-article duplicate verdicts</p>
   <div class="chips">
-    <span class="chip">📚 Reference corpus from CSV / SQL / RDS</span>
-    <span class="chip">📄 Check new CSV each run</span>
+    <span class="chip">📚 75 k article corpus — pre-loaded</span>
+    <span class="chip">📄 Upload new CSV to check</span>
     <span class="chip">⚡ HTML parsed — no URL fetching needed</span>
-    <span class="chip">🔴 Per-article verdict</span>
-    <span class="chip">⬇️ Enriched CSV export</span>
+    <span class="chip">🔴 Per-article verdict + export</span>
   </div>
 </div>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 1 — Load reference corpus
+# Auto-load corpus
 # ─────────────────────────────────────────────────────────────────────────────
-step(1, "Load your existing articles (reference corpus)")
-
-st.markdown(
-    '<div class="callout">Upload your <b>full existing article database</b> once. '
-    'It stays in session — you do not need to re-upload between checks.<br>'
-    'Required columns: <code>url</code>, <code>description</code> (HTML). '
-    'Optional: <code>entity</code> / <code>entity_type</code>.</div>',
-    unsafe_allow_html=True,
-)
-
-corp_src = st.radio(
-    "Source",
-    ["📄 CSV file", "🗄️ SQL dump (.sql)", "🛢️ RDS / database"],
-    horizontal=True, key="corp_src",
-)
-
-corpus_df = st.session_state.get("corpus_df")
-
-with st.container(border=True):
-    # ── CSV / SQL ─────────────────────────────────────────────────────────────
-    if corp_src in ("📄 CSV file", "🗄️ SQL dump (.sql)"):
-        ext = ["csv"] if "CSV" in corp_src else ["sql"]
-        corp_file = st.file_uploader(
-            "Upload reference corpus", type=ext, key="corp_upload",
-        )
-        if corp_file:
-            with st.spinner("Loading…"):
-                raw = load_df(corp_file, label="reference corpus")
-            if raw is not None:
-                df_norm, err = normalise_df(raw, require_desc=True)
-                if err:
-                    st.error(err)
-                    st.write("Columns found:", list(raw.columns))
-                else:
-                    df_norm["url"]         = df_norm["url"].astype(str).str.strip()
-                    df_norm["entity"]      = df_norm["entity"].astype(str).str.strip()
-                    df_norm["description"] = df_norm["description"].astype(str)
-                    st.session_state["corpus_df"]    = df_norm
-                    st.session_state["corpus_texts"] = None  # mark for rebuild
-                    corpus_df = df_norm
-                    st.success(f"✅ {len(df_norm):,} articles loaded as reference corpus")
-
-    # ── RDS ──────────────────────────────────────────────────────────────────
-    else:
-        c1, c2, c3 = st.columns([2, 3, 1])
-        db_type  = c1.selectbox("DB type", ["PostgreSQL", "MySQL"], key="corp_dbtype")
-        host     = c2.text_input("Host", placeholder="mydb.xxx.rds.amazonaws.com", key="corp_host")
-        port     = c3.number_input("Port", value=5432 if db_type == "PostgreSQL" else 3306, key="corp_port")
-        c4, c5   = st.columns(2)
-        dbname   = c4.text_input("Database", key="corp_dbname")
-        user     = c5.text_input("Username", key="corp_user")
-        password = st.text_input("Password", type="password", key="corp_pw")
-        query    = st.text_area(
-            "Query",
-            "SELECT url, entity_type AS entity, description\nFROM articles\nWHERE is_published = true;",
-            height=90, key="corp_query",
-        )
-        col_btn, col_clr = st.columns([2, 1])
-        if col_btn.button("🔌 Connect & load", type="primary", key="corp_fetch"):
-            if not all([host, dbname, user, password]):
-                st.error("Fill in all connection fields.")
-            else:
-                conn_str = (
-                    f"postgresql+psycopg2://{user}:{password}@{host}:{int(port)}/{dbname}"
-                    if db_type == "PostgreSQL"
-                    else f"mysql+pymysql://{user}:{password}@{host}:{int(port)}/{dbname}"
-                )
-                with st.spinner("Connecting…"):
-                    try:
-                        from sqlalchemy import create_engine, text as sqltxt
-                        eng = create_engine(conn_str, connect_args={"connect_timeout": 15})
-                        with eng.connect() as conn:
-                            raw = pd.read_sql_query(sqltxt(query), conn)
-                        df_norm, err = normalise_df(raw, require_desc=True)
-                        if err:
-                            st.error(err)
-                        else:
-                            df_norm["url"]         = df_norm["url"].astype(str).str.strip()
-                            df_norm["entity"]      = df_norm["entity"].astype(str).str.strip()
-                            df_norm["description"] = df_norm["description"].astype(str)
-                            st.session_state["corpus_df"]    = df_norm
-                            st.session_state["corpus_texts"] = None
-                            corpus_df = df_norm
-                            st.success(f"✅ {len(df_norm):,} articles loaded from RDS")
-                    except Exception as e:
-                        st.error(f"Connection failed: {e}")
-        if col_clr.button("🗑️ Clear corpus", key="corp_clear"):
-            for k in ("corpus_df", "corpus_texts", "results"):
-                st.session_state.pop(k, None)
-            st.rerun()
-
-# corpus status
-corpus_df = st.session_state.get("corpus_df")
-if corpus_df is not None:
-    top_ents = ", ".join(
-        f"{e} ({n})"
-        for e, n in corpus_df["entity"].value_counts().head(5).items()
-    )
+corpus_ok = os.path.exists(CORPUS_PATH)
+if corpus_ok:
+    with st.spinner("Loading reference corpus…"):
+        corpus_df = load_corpus(CORPUS_PATH)
+    n_corp = len(corpus_df)
     st.markdown(
-        f'<div class="corpus-badge">📚 Reference corpus ready: '
-        f'<b>{len(corpus_df):,} articles</b> · {top_ents}</div>',
+        f'<div class="corpus-ok">📚 Reference corpus loaded · '
+        f'<b>{n_corp:,} articles</b> from KollegeApply database</div>',
         unsafe_allow_html=True,
     )
 else:
+    corpus_df = None
     st.markdown(
-        '<div class="corpus-badge warn">⚠️ No reference corpus loaded yet.</div>',
+        f'<div class="corpus-err">❌ Corpus file not found at '
+        f'<code>{CORPUS_PATH}</code> — contact admin.</div>',
         unsafe_allow_html=True,
     )
+    st.stop()
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 2 — Upload new articles to check
+# Step 1 — Upload new articles
 # ─────────────────────────────────────────────────────────────────────────────
-step(2, "Upload new articles to check")
+step(1, "Upload new articles to check")
 
 st.markdown(
-    '<div class="callout">Upload the <b>new articles</b> you want to verify against your corpus. '
-    'Columns: <code>url</code> (required), <code>entity</code> (optional), '
-    '<code>description</code> (HTML — optional; omit and we fetch from the URL). '
-    'Results will be generated <b>only for this CSV</b>.</div>',
+    '<div class="callout">Upload a CSV of the <b>new articles</b> you want to verify. '
+    'Required column: <code>url</code>. '
+    'Optional: <code>entity</code>, <code>description</code> (HTML — if missing, fetched from URL).'
+    '</div>',
     unsafe_allow_html=True,
 )
 
 new_df = None
 with st.container(border=True):
-    new_src = st.radio("Source", ["📄 Upload CSV", "📋 Paste URLs"],
+    new_src = st.radio("Input method", ["📄 Upload CSV", "📋 Paste URLs"],
                        horizontal=True, key="new_src")
 
     if new_src == "📄 Upload CSV":
-        new_file = st.file_uploader("Upload new articles CSV",
-                                    type=["csv"], key="new_upload")
+        new_file = st.file_uploader("Upload new articles CSV", type=["csv"], key="new_upload")
         if new_file:
-            raw_new = load_df(new_file, label="new articles")
+            try:
+                raw_new = pd.read_csv(new_file)
+            except Exception as e:
+                st.error(f"Could not read CSV: {e}")
+                raw_new = None
             if raw_new is not None:
-                df_norm2, err2 = normalise_df(raw_new, require_desc=False)
+                df2, err2 = normalise_new(raw_new)
                 if err2:
-                    st.warning(f"Column mapping issue: {err2}")
-                    st.write("Columns found:", list(raw_new.columns))
+                    st.warning(err2)
                     mc1, mc2, mc3 = st.columns(3)
                     url_c  = mc1.selectbox("URL column",         list(raw_new.columns), key="nu")
                     ent_c  = mc2.selectbox("Entity column",      list(raw_new.columns), key="ne")
                     desc_c = mc3.selectbox("Description column",
                                            ["(none)"] + list(raw_new.columns), key="nd")
                     rename = {url_c: "url", ent_c: "entity"}
-                    if desc_c != "(none)":
-                        rename[desc_c] = "description"
-                    df_norm2 = raw_new.rename(columns=rename)
-                    if "entity"      not in df_norm2.columns: df_norm2["entity"]      = "unknown"
-                    if "description" not in df_norm2.columns: df_norm2["description"] = ""
-                new_df = df_norm2
+                    if desc_c != "(none)": rename[desc_c] = "description"
+                    df2 = raw_new.rename(columns=rename)
+                    if "entity"      not in df2.columns: df2["entity"]      = "unknown"
+                    if "description" not in df2.columns: df2["description"] = ""
+                new_df = df2
                 if new_df is not None:
                     new_df["url"]         = new_df["url"].astype(str).str.strip()
                     new_df["entity"]      = new_df["entity"].astype(str).str.strip()
                     new_df["description"] = new_df["description"].astype(str).fillna("")
                     has_desc = (new_df["description"].str.strip().str.len() > 10).sum()
                     st.success(
-                        f"✅ {len(new_df):,} new articles · "
+                        f"✅ {len(new_df):,} articles ready · "
                         f"{has_desc} have HTML · "
-                        f"{len(new_df)-has_desc} will be fetched"
+                        f"{len(new_df)-has_desc} will be fetched from URL"
                     )
     else:
         pasted = st.text_area("One URL per line", height=140,
@@ -464,43 +320,37 @@ with st.container(border=True):
             urls = [u.strip() for u in pasted.splitlines()
                     if u.strip().startswith("http")]
             if urls:
-                new_df = pd.DataFrame({
-                    "url": urls, "entity": "unknown", "description": ""
-                })
-                st.success(f"✅ {len(urls)} URLs (content will be fetched)")
+                new_df = pd.DataFrame({"url": urls, "entity": "unknown", "description": ""})
+                st.success(f"✅ {len(urls)} URLs (content will be fetched from each URL)")
             else:
-                st.error("No valid URLs found (must start with http).")
+                st.error("No valid URLs found.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 3 — Run
+# Step 2 — Run
 # ─────────────────────────────────────────────────────────────────────────────
-can_run = corpus_df is not None and new_df is not None and len(new_df) > 0
-
-if can_run:
-    step(3, "Run check")
+if new_df is not None and len(new_df) > 0:
+    step(2, "Run check")
 
     with st.container(border=True):
-        n_new    = len(new_df)
-        n_corpus = len(corpus_df)
-        n_fetch  = int((new_df["description"].str.strip().str.len() <= 10).sum())
-        est_sec  = n_new * 0.4 + n_fetch * 4
+        n_new   = len(new_df)
+        n_fetch = int((new_df["description"].str.strip().str.len() <= 10).sum())
+        est_sec = n_new * 0.5 + n_fetch * 4
         if run_web:
             est_sec += n_new * n_passages * 5
 
         c1, c2, c3, c4 = st.columns(4)
-        c1.metric("New articles",    n_new)
-        c2.metric("Corpus size",     f"{n_corpus:,}")
-        c3.metric("URLs to fetch",   n_fetch)
+        c1.metric("New articles",  n_new)
+        c2.metric("Corpus size",   f"{len(corpus_df):,}")
+        c3.metric("URLs to fetch", n_fetch)
         c4.metric("Est. time",
                   f"~{max(1,round(est_sec/60))} min" if est_sec > 60
                   else f"~{int(est_sec)}s")
 
         if n_fetch > 0:
             st.markdown(
-                '<div class="callout warn">⚠️ Articles without a description will be '
-                'fetched from their URL. Add a <code>description</code> column with HTML '
-                'to avoid network calls.</div>',
+                '<div class="callout warn">⚠️ Articles without a <code>description</code> '
+                'column will be fetched from the URL — this is slower.</div>',
                 unsafe_allow_html=True,
             )
 
@@ -508,25 +358,20 @@ if can_run:
                             use_container_width=True, key="run_btn")
 
     if run_btn:
-        # 3a — parse corpus HTML
-        corpus_texts = st.session_state.get("corpus_texts")
-        if corpus_texts is None:
-            with st.status("⚡ Parsing reference corpus HTML…", expanded=False) as s:
-                corpus_texts = [
-                    extract_text_from_html(h) for h in corpus_df["description"]
-                ]
-                st.session_state["corpus_texts"] = corpus_texts
-                s.update(
-                    label=f"✅ Corpus parsed ({len(corpus_texts):,} articles)",
-                    state="complete",
-                )
+        # ── parse corpus HTML (cached) ────────────────────────────────────────
+        with st.status("⚡ Parsing corpus HTML…", expanded=False) as sc_:
+            corpus_texts = parse_corpus_texts(
+                tuple(corpus_df["url"]),
+                tuple(corpus_df["description"]),
+            )
+            sc_.update(label=f"✅ Corpus parsed ({len(corpus_texts):,} articles)",
+                       state="complete")
 
-        # 3b — extract text for new articles
+        # ── extract text for new articles ─────────────────────────────────────
         with st.status("📄 Preparing new articles…", expanded=True) as s2:
             prog = st.progress(0.0)
             cur  = st.empty()
-            new_texts = []
-            new_wc    = []
+            new_texts, new_wc = [], []
             for i, row in enumerate(new_df.itertuples(), 1):
                 cur.markdown(f"**{i}/{n_new}** · `{row.url}`")
                 desc = str(row.description).strip()
@@ -538,28 +383,27 @@ if can_run:
             s2.update(label=f"✅ {n_new} articles ready",
                       state="complete", expanded=False)
 
-        # 3c — TF-IDF: new vs corpus
-        with st.status("🔁 Computing similarity against corpus…", expanded=False) as s3:
-            all_texts   = corpus_texts + new_texts
-            valid_mask  = [len(t.split()) >= 30 for t in all_texts]
+        # ── TF-IDF: new articles vs corpus ────────────────────────────────────
+        with st.status("🔁 Computing similarity…", expanded=False) as s3:
+            all_texts  = corpus_texts + new_texts
+            valid_mask = [len(t.split()) >= 30 for t in all_texts]
             valid_texts = [t for t, ok in zip(all_texts, valid_mask) if ok]
-            n_corp_ok   = sum(valid_mask[:n_corpus])
+            n_corp_ok   = sum(valid_mask[:len(corpus_df)])
 
-            sim_results = []  # list of (best_score_pct, corpus_row_idx)
-
+            sim_results = []
             if len(valid_texts) >= 2 and n_corp_ok > 0:
                 vec = TfidfVectorizer(ngram_range=(1, 3), stop_words="english",
                                       min_df=1, max_features=60000)
-                mat = vec.fit_transform(valid_texts)
-                corp_mat     = mat[:n_corp_ok]
-                corp_orig    = [i for i, ok in enumerate(valid_mask[:n_corpus]) if ok]
-                new_mat      = mat[n_corp_ok:]
+                mat      = vec.fit_transform(valid_texts)
+                corp_mat = mat[:n_corp_ok]
+                corp_orig = [i for i, ok in enumerate(valid_mask[:len(corpus_df)]) if ok]
+                new_mat   = mat[n_corp_ok:]
 
                 if new_mat.shape[0] > 0:
                     sims = cosine_similarity(new_mat, corp_mat)
                     ni = 0
                     for orig_i in range(n_new):
-                        if valid_mask[n_corpus + orig_i]:
+                        if valid_mask[len(corpus_df) + orig_i]:
                             best_j  = int(sims[ni].argmax())
                             best_sc = round(float(sims[ni, best_j]) * 100, 1)
                             sim_results.append((best_sc, corp_orig[best_j]))
@@ -573,7 +417,7 @@ if can_run:
 
             s3.update(label="✅ Similarity computed", state="complete")
 
-        # 3d — optional web check
+        # ── optional web check ────────────────────────────────────────────────
         web_res = {}
         if run_web:
             excl = {d.strip().lower() for d in excl_domains.splitlines() if d.strip()}
@@ -589,15 +433,14 @@ if can_run:
                             preloaded_text=txt,
                         )
                     except Exception as e:
-                        res = {"plagiarism_score": None,
-                               "verdict": f"Error: {e}",
+                        res = {"plagiarism_score": None, "verdict": f"Error: {e}",
                                "top_sources": "", "matches": []}
                     web_res[row.url] = res
                     wp.progress(i / n_new)
                 wt.empty()
                 sw.update(label="✅ Web check done", state="complete", expanded=False)
 
-        # assemble results
+        # ── assemble results ──────────────────────────────────────────────────
         final_rows = []
         for row, txt, wc, (sc, ci) in zip(
             new_df.itertuples(), new_texts, new_wc, sim_results
@@ -617,20 +460,17 @@ if can_run:
                 "web_verdict":             wr.get("verdict", ""),
                 "top_web_sources":         wr.get("top_sources", ""),
                 "_matches":                wr.get("matches", []),
-                "_text":                   txt,
             })
 
         st.session_state["results"] = final_rows
         st.rerun()
 
-elif corpus_df is None:
-    pass  # warning already shown
-elif new_df is None:
-    st.info("👆 Complete Step 2 to upload the new articles you want to check.", icon="ℹ️")
+else:
+    st.info("👆 Upload a CSV of new articles to begin.", icon="ℹ️")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Step 4 — Results
+# Step 3 — Results
 # ─────────────────────────────────────────────────────────────────────────────
 results = st.session_state.get("results")
 if results:
@@ -641,26 +481,26 @@ if results:
 
     h1, h2 = st.columns([6, 1], vertical_alignment="bottom")
     with h1:
-        step(4, "Results")
+        step(3, "Results")
     with h2:
-        if st.button("🗑️ Clear results", use_container_width=True, key="clr_res"):
+        if st.button("🗑️ Clear results", use_container_width=True):
             st.session_state.pop("results", None)
             st.rerun()
 
     # summary tiles
-    n_dup  = int((rdf["similarity_to_corpus_%"] >= dup_threshold).sum())
-    n_rev  = int(((rdf["similarity_to_corpus_%"] >= 40) &
-                  (rdf["similarity_to_corpus_%"] < dup_threshold)).sum())
-    n_ok   = int((rdf["similarity_to_corpus_%"] < 40).sum())
-    avg_s  = f"{rdf['similarity_to_corpus_%'].mean():.1f}%"
+    n_dup = int((rdf["similarity_to_corpus_%"] >= dup_threshold).sum())
+    n_rev = int(((rdf["similarity_to_corpus_%"] >= 40) &
+                 (rdf["similarity_to_corpus_%"] < dup_threshold)).sum())
+    n_ok  = int((rdf["similarity_to_corpus_%"] < 40).sum())
+    avg_s = f"{rdf['similarity_to_corpus_%'].mean():.1f}%"
 
     cols = st.columns(5)
     for col, (val, lab, cls) in zip(cols, [
-        (len(rdf),  "Checked",                    "blue"),
-        (avg_s,     "Avg similarity",              "blue"),
+        (len(rdf),  "Checked",                         "blue"),
+        (avg_s,     "Avg similarity",                   "blue"),
         (n_dup,     f"🔴 Duplicates (≥{dup_threshold}%)", "red"),
-        (n_rev,     "🟡 Review",                   "amber"),
-        (n_ok,      "🟢 Unique",                   "green"),
+        (n_rev,     "🟡 Review needed",                 "amber"),
+        (n_ok,      "🟢 Unique",                        "green"),
     ]):
         col.markdown(
             f'<div class="mt {cls}"><div class="val">{val}</div>'
@@ -672,8 +512,7 @@ if results:
     if n_dup:
         st.error(
             f"⚠️ **{n_dup} article{'s' if n_dup>1 else ''}** "
-            f"{'are' if n_dup>1 else 'is'} ≥{dup_threshold}% similar to an article "
-            f"already in your corpus — likely duplicates or rewrites.",
+            f"{'are' if n_dup>1 else 'is'} ≥{dup_threshold}% similar to an existing article.",
             icon="🔴",
         )
 
@@ -730,8 +569,7 @@ if results:
                     corp_ent = html_module.escape(str(r.get("matched_existing_entity", "")))
                     new_ent  = html_module.escape(str(r.get("entity", "")))
                     st.markdown(
-                        f'<div class="res-card {cls}" '
-                        f'style="display:flex;gap:1rem;align-items:flex-start;">'
+                        f'<div class="res-card {cls}">'
                         f'<div class="rcscore">{sc:.0f}%</div>'
                         f'<div class="rcbody">'
                         f'<b>New:</b> <a href="{new_e}" target="_blank">{new_e}</a> '
