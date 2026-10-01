@@ -172,23 +172,58 @@ def load_corpus(path):
     return df
 
 
-@st.cache_resource(show_spinner=False)
-def build_corpus_index(path):
+def _ensure_corpus_index():
     """
-    Parse corpus HTML and fit a TF-IDF vectorizer once.
-    Cached as a resource (stays in memory, no serialization overhead).
-    Returns (vectorizer, corpus_matrix, corpus_urls, corpus_texts).
+    Build corpus index with visible progress bars.
+    Results stored in st.session_state so they survive reruns but show progress on first build.
     """
-    df = load_corpus(path)
-    texts = [extract_text_from_html(d) for d in df["description"]]
-    vec = TfidfVectorizer(
-        ngram_range=(1, 2),   # (1,2) vs (1,3): ~3× faster, minimal quality loss
-        stop_words="english",
-        min_df=2,
-        max_features=50000,
+    if "corpus_urls" in st.session_state:
+        return  # already built this session
+
+    df = load_corpus(CORPUS_PATH)
+    urls = df["url"].tolist()
+    descs = df["description"].tolist()
+    n = len(urls)
+
+    # Step A — parse HTML with progress
+    st.markdown(
+        '<div class="callout"><b>Step A/2 — Parsing corpus HTML…</b> '
+        'This runs once per session.</div>',
+        unsafe_allow_html=True,
     )
-    mat = vec.fit_transform(texts)
-    return vec, mat, df["url"].tolist(), texts
+    prog_a   = st.progress(0.0)
+    counter_a = st.empty()
+    texts = []
+    for i, html in enumerate(descs, 1):
+        texts.append(extract_text_from_html(html))
+        if i % 500 == 0 or i == n:
+            prog_a.progress(i / n)
+            counter_a.markdown(
+                f'<div style="font-size:.85rem;color:#475569;">'
+                f'📄 Parsing article <b>{i:,}</b> of <b>{n:,}</b></div>',
+                unsafe_allow_html=True,
+            )
+    prog_a.empty()
+    counter_a.empty()
+
+    # Step B — fit TF-IDF
+    st.markdown(
+        '<div class="callout"><b>Step B/2 — Building TF-IDF index…</b></div>',
+        unsafe_allow_html=True,
+    )
+    with st.spinner(f"Fitting vectorizer on {n:,} articles…"):
+        vec = TfidfVectorizer(
+            ngram_range=(1, 2),
+            stop_words="english",
+            min_df=2,
+            max_features=50000,
+        )
+        mat = vec.fit_transform(texts)
+
+    st.session_state["corpus_urls"]  = urls
+    st.session_state["corpus_vec"]   = vec
+    st.session_state["corpus_mat"]   = mat
+    st.rerun()  # clean up the progress UI
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -239,23 +274,26 @@ st.markdown("""
 # ─────────────────────────────────────────────────────────────────────────────
 # Auto-load corpus
 # ─────────────────────────────────────────────────────────────────────────────
-corpus_ok = os.path.exists(CORPUS_PATH)
-if corpus_ok:
-    with st.spinner("Loading corpus index… (first load only — instant after)"):
-        corpus_vec, corpus_mat, corpus_urls, corpus_texts = build_corpus_index(CORPUS_PATH)
-    n_corp = len(corpus_urls)
-    st.markdown(
-        f'<div class="corpus-ok">📚 Reference corpus ready · '
-        f'<b>{n_corp:,} articles</b> · TF-IDF index pre-built</div>',
-        unsafe_allow_html=True,
-    )
-else:
+if not os.path.exists(CORPUS_PATH):
     st.markdown(
         f'<div class="corpus-err">❌ Corpus file not found at '
         f'<code>{CORPUS_PATH}</code> — contact admin.</div>',
         unsafe_allow_html=True,
     )
     st.stop()
+
+_ensure_corpus_index()   # builds with progress bars on first run, no-op after
+
+corpus_urls = st.session_state["corpus_urls"]
+corpus_vec  = st.session_state["corpus_vec"]
+corpus_mat  = st.session_state["corpus_mat"]
+n_corp      = len(corpus_urls)
+
+st.markdown(
+    f'<div class="corpus-ok">📚 Reference corpus ready · '
+    f'<b>{n_corp:,} articles</b> · TF-IDF index pre-built</div>',
+    unsafe_allow_html=True,
+)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -357,7 +395,12 @@ if new_df is not None and len(new_df) > 0:
             cur  = st.empty()
             new_texts, new_wc = [], []
             for i, row in enumerate(new_df.itertuples(), 1):
-                cur.markdown(f"**{i}/{n_new}** · `{row.url}`")
+                cur.markdown(
+                    f'<div style="font-size:.88rem;color:#1e293b;">'
+                    f'📄 Article <b>{i}</b> of <b>{n_new}</b> &nbsp;·&nbsp; '
+                    f'<span style="color:#64748b;">{row.url}</span></div>',
+                    unsafe_allow_html=True,
+                )
                 desc = str(row.description).strip()
                 text = extract_text_from_html(desc) if len(desc) > 10 else fetch_text(row.url)
                 new_texts.append(text)
