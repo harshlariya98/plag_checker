@@ -134,7 +134,7 @@ html, body, [class*="css"] {
     font-family: 'Lato', -apple-system, BlinkMacSystemFont, sans-serif !important;
     background: var(--bg) !important;
 }
-.block-container { padding: 0 2rem 5rem !important; max-width: 1180px !important; }
+.block-container { padding: .5rem 2rem 5rem !important; max-width: 1180px !important; }
 
 /* ── keyframes ──────────────────────────── */
 @keyframes fadeUp  { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
@@ -185,16 +185,17 @@ section[data-testid="stSidebar"] span { color: var(--text) !important; font-size
 .legend-row { display: flex; align-items: center; gap: .5rem; font-size: .8rem; font-weight: 700; }
 .ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 
-/* hide Streamlit's default top-right toolbar menu (Deploy etc) that overlaps hero */
-header[data-testid="stHeader"] { background: transparent !important; }
-div[data-testid="stToolbar"] { display: none !important; }
+/* Streamlit header – keep visible; make it blend into page bg */
+header[data-testid="stHeader"] { background: var(--bg) !important; box-shadow: none !important; }
+/* Hide only the Deploy/Share button, keep the sidebar-toggle */
+div[data-testid="stToolbar"] > div:last-child { display: none !important; }
 
 /* ── HERO ───────────────────────────────── */
 .hero {
     background: var(--g-hero);
-    border-radius: 0 0 20px 20px;
-    padding: 1.5rem 2.5rem 1.9rem;
-    margin: 0 -2rem 1.75rem;
+    border-radius: 16px;
+    padding: 1.6rem 2rem 2rem;
+    margin: 0 0 1.75rem;
     position: relative; overflow: hidden;
     animation: fadeIn .5s ease;
 }
@@ -257,18 +258,39 @@ div[data-testid="stToolbar"] { display: none !important; }
 /* ── SECTION HEADING ────────────────────── */
 .section-head {
     display: flex; align-items: center; gap: .7rem;
-    margin: 1.75rem 0 1rem;
+    margin: 2.25rem 0 .9rem;
+    padding: .85rem 1rem .85rem 1rem;
+    border-radius: 12px;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--sec-accent, var(--navy));
+    box-shadow: var(--shadow-sm);
     animation: fadeUp .35s ease both;
 }
+/* per-section accent colours */
+.section-head.s-blue   { --sec-accent: #408EE0; }
+.section-head.s-coral  { --sec-accent: #F47062; }
+.section-head.s-green  { --sec-accent: #10B981; }
+.section-head.s-purple { --sec-accent: #7C3AED; }
+
 .section-num {
     width: 2.1rem; height: 2.1rem; border-radius: 10px; flex-shrink: 0;
-    background: var(--g-hero); color: #fff;
+    color: #fff;
     display: flex; align-items: center; justify-content: center;
     font-size: .82rem; font-weight: 900;
-    box-shadow: 0 3px 10px rgba(22,50,79,.28);
+    box-shadow: 0 3px 10px rgba(0,0,0,.18);
+    background: var(--g-hero);
 }
-.section-title { font-size: 1.05rem; font-weight: 900; color: var(--navy); letter-spacing: -.25px; }
-.section-sub { font-size: .75rem; font-weight: 700; color: var(--muted); padding-left: .25rem; }
+.section-num.s-blue   { background: linear-gradient(135deg,#408EE0,#60AEF0); box-shadow: 0 3px 10px rgba(64,142,224,.35); }
+.section-num.s-coral  { background: linear-gradient(135deg,#F47062,#FF8C42); box-shadow: 0 3px 10px rgba(244,112,98,.35); }
+.section-num.s-green  { background: linear-gradient(135deg,#10B981,#34D399); box-shadow: 0 3px 10px rgba(16,185,129,.35); }
+.section-num.s-purple { background: linear-gradient(135deg,#7C3AED,#A78BFA); box-shadow: 0 3px 10px rgba(124,58,237,.35); }
+
+.section-title { font-size: 1rem; font-weight: 900; color: var(--navy); letter-spacing: -.25px; }
+.section-sub {
+    font-size: .75rem; font-weight: 700; color: var(--muted);
+    margin-left: auto; padding-right: .1rem;
+}
 
 /* ── RADIO AS PILL TOGGLE ───────────────── */
 div[data-testid="stRadio"] { margin-bottom: .5rem; }
@@ -320,6 +342,18 @@ div[data-testid="stRadio"] > div > label > div {
 }
 div[data-testid="stRadio"] > div > label > div > div:first-child {
     display: none !important;
+}
+
+/* ── SECTION CONTENT PANEL ──────────────── */
+.sec-panel {
+    background: var(--surface);
+    border-radius: 0 0 14px 14px;
+    border: 1.5px solid var(--border);
+    border-top: none;
+    padding: 1.25rem 1.25rem 1.5rem;
+    margin-top: -1rem;
+    margin-bottom: 0.5rem;
+    box-shadow: var(--shadow-sm);
 }
 
 /* ── FILE UPLOADER ──────────────────────── */
@@ -502,11 +536,12 @@ div[data-testid="stSegmentedControl"] { margin: .75rem 0 1rem !important; }
 # ─────────────────────────────────────────────────────────────────────────────
 # Helpers
 # ─────────────────────────────────────────────────────────────────────────────
-def section(n, title, sub=""):
+def section(n, title, sub="", color=""):
+    cls = f"s-{color}" if color else ""
     sub_html = f'<span class="section-sub">{sub}</span>' if sub else ""
     st.markdown(
-        f'<div class="section-head">'
-        f'<span class="section-num">{n}</span>'
+        f'<div class="section-head {cls}">'
+        f'<span class="section-num {cls}">{n}</span>'
         f'<span class="section-title">{title}</span>'
         f'{sub_html}'
         f'</div>',
@@ -756,7 +791,7 @@ st.markdown(
 # ─────────────────────────────────────────────────────────────────────────────
 # Section 1 — Upload
 # ─────────────────────────────────────────────────────────────────────────────
-section(1, "Upload articles to check", "CSV or paste URLs")
+section(1, "Upload articles to check", "CSV or paste URLs", color="blue")
 
 new_df = None
 new_src = st.radio("Input method", ["📂  Upload CSV", "🔗  Paste URLs"],
@@ -821,7 +856,7 @@ with st.container(border=True):
 # Section 2 — Run
 # ─────────────────────────────────────────────────────────────────────────────
 if new_df is not None and len(new_df) > 0:
-    section(2, "Ready to launch 🚀", "review before running")
+    section(2, "Ready to launch 🚀", "review before running", color="coral")
 
     n_new   = len(new_df)
     n_fetch = int((new_df["description"].str.strip().str.len() <= 10).sum())
@@ -960,7 +995,7 @@ if results:
     # header row
     h1, h2 = st.columns([5, 1], vertical_alignment="bottom")
     with h1:
-        section(3, "Results are in 🎯")
+        section(3, "Results are in 🎯", color="green")
     with h2:
         if st.button("🗑 Clear", use_container_width=True):
             st.session_state.pop("results", None)
