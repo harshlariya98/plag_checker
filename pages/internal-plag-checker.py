@@ -141,71 +141,64 @@ html, body, [class*="css"] {
     background: var(--bg) !important;
     color: var(--text) !important;
 }
-.block-container { padding: 3.75rem 2rem 4rem !important; max-width: 1440px !important; }
+.block-container { padding: 5rem 2rem 4rem !important; max-width: 1440px !important; }
 
-/* Streamlit top bar — make it transparent so the custom app-header is the real header */
-header[data-testid="stHeader"] {
-    background: transparent !important;
-    border-bottom: none !important;
-    box-shadow: none !important;
+/* Streamlit top bar — hide it; we render our own fixed header */
+header[data-testid="stHeader"] { display: none !important; }
+
+/* ── Sidebar collapse button — label it "Navigation" ───────────────────────── */
+button[data-testid="stSidebarCollapseButton"] {
+    display: flex !important; align-items: center !important;
+    background: var(--light) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-xs) !important;
+    padding: 5px 10px 5px 7px !important;
+    gap: 5px !important; cursor: pointer !important;
+    transition: all .15s !important;
 }
-div[data-testid="stToolbar"] > div:last-child { display: none !important; }
+button[data-testid="stSidebarCollapseButton"]:hover {
+    background: var(--bg) !important; border-color: var(--blue) !important;
+}
+button[data-testid="stSidebarCollapseButton"] svg {
+    width: 14px !important; height: 14px !important;
+    color: var(--navy) !important;
+}
+button[data-testid="stSidebarCollapseButton"]::after {
+    content: "Navigation";
+    font-family: 'Inter', sans-serif;
+    font-size: 11.5px; font-weight: 600; color: var(--navy);
+}
 
 /* ── Keyframes ─────────────────────────────────────────────────────────────── */
 @keyframes fadeUp  { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
 @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
 @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-/* ── Sidebar nav rail ──────────────────────────────────────────────────────── */
-/* Hide Streamlit's auto-generated page navigation list */
-section[data-testid="stSidebar"] [data-testid="stSidebarNav"] { display: none !important; }
-section[data-testid="stSidebar"] [data-testid="stSidebarNavItems"] { display: none !important; }
-section[data-testid="stSidebar"] {
-    background: var(--surface) !important;
-    border-right: 1px solid var(--border) !important;
-}
-section[data-testid="stSidebar"] > div { padding-top: 0 !important; }
-.nav-brand {
-    padding: 16px 16px 12px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 6px;
-    display: flex; align-items: center; gap: 9px;
-}
-.nav-logo { width: 28px; height: 28px; object-fit: contain; flex-shrink: 0; display: block; }
-.nav-logo-fb {
-    width: 28px; height: 28px; border-radius: 7px; background: var(--navy);
-    display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0;
-}
-.nav-title { font-size: 13px; font-weight: 700; color: var(--navy); line-height: 1.25; }
-.nav-sub   { font-size: 10px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .07em; margin-top: 1px; }
-.nav-section {
-    padding: 14px 16px 4px;
-    font-size: 10px; font-weight: 700; letter-spacing: .09em;
-    text-transform: uppercase; color: var(--muted);
-}
-.nav-link {
-    display: flex; align-items: center; gap: 8px;
-    padding: 7px 16px; margin: 1px 8px;
-    border-radius: var(--radius-xs);
-    font-size: 13px; font-weight: 500; color: var(--text);
-    transition: background .15s;
-}
-.nav-link:hover { background: var(--bg); }
-.nav-link.active { background: var(--blue-bg); color: var(--blue); font-weight: 600; }
-.nav-icon { font-size: 14px; width: 18px; text-align: center; flex-shrink: 0; }
+/* ── Hide sidebar entirely (nav moves to header) ───────────────────────────── */
+section[data-testid="stSidebar"] { display: none !important; }
 
-/* ── Application header strip ──────────────────────────────────────────────── */
-.app-header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 0 0 18px;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 22px;
-    animation: fadeIn .3s ease;
+/* ── Fixed top accent strip ────────────────────────────────────────────────── */
+.header-accent {
+    position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 1000000;
+    background: linear-gradient(90deg, var(--coral) 0%, var(--blue) 55%, var(--purple) 100%);
 }
+
+/* ── Fixed app header ──────────────────────────────────────────────────────── */
+.app-header {
+    position: fixed; top: 3px; left: 0; right: 0; height: 53px; z-index: 999999;
+    background: rgba(255,255,255,0.97);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+    box-shadow: 0 1px 10px rgba(0,0,0,.07);
+    display: flex; align-items: center;
+    padding: 0 24px; gap: 0;
+}
+.app-header-left  { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.app-header-right { flex-shrink: 0; }
 .app-logo    { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; display: block; }
 .app-logo-fb { width: 24px; height: 24px; border-radius: 6px; background: var(--navy);
                display: flex; align-items: center; justify-content: center; font-size: .8rem; }
-.app-brand   { font-size: 13.5px; font-weight: 600; color: var(--navy); }
+.app-brand   { font-size: 13.5px; font-weight: 700; color: var(--navy); }
 .app-sep     { width: 1px; height: 14px; background: var(--border); flex-shrink: 0; }
 .app-page    { font-size: 14px; font-weight: 700; color: var(--navy); }
 .app-badge   {
@@ -214,7 +207,32 @@ section[data-testid="stSidebar"] > div { padding-top: 0 !important; }
     border: 1px solid var(--blue-border);
     padding: 2px 8px; border-radius: 4px;
 }
-.app-right { margin-left: auto; display: flex; align-items: center; gap: 14px; }
+
+/* ── Header nav pills ──────────────────────────────────────────────────────── */
+.app-nav {
+    display: flex; align-items: center; justify-content: center;
+    gap: 4px; flex: 1; padding: 0 24px;
+}
+.nav-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 14px; border-radius: 99px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--muted); background: transparent;
+    border: 1px solid transparent;
+    transition: all .15s; cursor: default; white-space: nowrap;
+    user-select: none;
+}
+.nav-pill:hover { color: var(--navy); background: var(--bg); border-color: var(--border); }
+.nav-pill.pill-blue   { color: var(--blue);   background: var(--blue-bg);   border-color: var(--blue-border); }
+.nav-pill.pill-green  { color: var(--green);  background: var(--green-bg);  border-color: var(--green-border); }
+.nav-pill.pill-coral  { color: var(--coral);  background: rgba(244,112,98,.08); border-color: rgba(244,112,98,.25); }
+.nav-pill.pill-purple { color: var(--purple); background: var(--purple-bg); border-color: var(--purple-border); }
+.nav-dot {
+    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+    animation: pulse 1.8s ease infinite;
+}
+
+/* ── Corpus chip ───────────────────────────────────────────────────────────── */
 .corpus-chip {
     display: flex; align-items: center; gap: 6px;
     font-size: 12.5px; color: var(--muted);
@@ -240,9 +258,31 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     border-radius: var(--radius) !important;
     border: 1px solid var(--border) !important;
     background: var(--surface) !important;
-    box-shadow: var(--shadow-xs) !important;
+    box-shadow: var(--shadow-sm) !important;
     margin-bottom: 12px !important;
     animation: fadeUp .35s ease both;
+    transition: box-shadow .2s, border-color .2s !important;
+}
+div[data-testid="stVerticalBlockBorderWrapper"]:hover {
+    box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Primary run button ────────────────────────────────────────────────────── */
+div[data-testid="stButton"] > button[kind="primary"] {
+    background: linear-gradient(135deg, var(--coral) 0%, #E85D4E 100%) !important;
+    border: none !important; color: #fff !important;
+    font-size: 14px !important; font-weight: 700 !important;
+    padding: 10px 28px !important; border-radius: var(--radius-sm) !important;
+    box-shadow: 0 2px 8px rgba(244,112,98,.35) !important;
+    transition: all .2s !important; letter-spacing: .01em !important;
+}
+div[data-testid="stButton"] > button[kind="primary"]:hover {
+    box-shadow: 0 4px 16px rgba(244,112,98,.5) !important;
+    transform: translateY(-1px) !important;
+}
+div[data-testid="stButton"] > button[kind="primary"]:active {
+    transform: translateY(0) !important;
+    box-shadow: 0 2px 6px rgba(244,112,98,.3) !important;
 }
 
 .panel-hd {
@@ -655,25 +695,6 @@ def _ensure_corpus_index():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Sidebar — compact navigation rail
-# ─────────────────────────────────────────────────────────────────────────────
-with st.sidebar:
-    _sb_logo = (f'<img src="{LOGO_URI}" class="nav-logo" alt="KollegeApply">'
-                if LOGO_URI else '<div class="nav-logo-fb">🎓</div>')
-    st.markdown(
-        f'<div class="nav-brand">{_sb_logo}'
-        f'<div><div class="nav-title">KollegeApply</div>'
-        f'<div class="nav-sub">Plag Checker · Internal</div></div>'
-        f'</div>'
-        f'<div class="nav-section">Workspace</div>'
-        f'<div class="nav-link active"><span class="nav-icon">🔍</span> Detection</div>'
-        f'<div class="nav-link"><span class="nav-icon">🌐</span> Web Check</div>'
-        f'<div class="nav-link"><span class="nav-icon">📊</span> Results</div>',
-        unsafe_allow_html=True,
-    )
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # Application header
 # ─────────────────────────────────────────────────────────────────────────────
 _n_pre = len(st.session_state.get("corpus_urls", []))
@@ -687,14 +708,28 @@ _corpus_badge = (
 )
 _hlogo = (f'<img src="{LOGO_URI}" class="app-logo" alt="KollegeApply">'
           if LOGO_URI else '<div class="app-logo-fb">🎓</div>')
+_has_results = bool(st.session_state.get("results"))
+_web_active  = st.session_state.get("run_web_chk", False)
+_pill_web    = "pill-green" if _web_active else ""
+_pill_res    = "pill-purple" if _has_results else ""
+_dot_res     = '<span class="nav-dot" style="background:var(--purple)"></span>' if _has_results else ""
 st.markdown(
+    f'<div class="header-accent"></div>'
     f'<div class="app-header">'
-    f'{_hlogo}'
-    f'<span class="app-brand">KollegeApply</span>'
-    f'<span class="app-sep"></span>'
-    f'<span class="app-page">Plag Checker</span>'
-    f'<span class="app-badge">INTERNAL TOOL</span>'
-    f'<div class="app-right">{_corpus_badge}</div>'
+    f'  <div class="app-header-left">'
+    f'    {_hlogo}'
+    f'    <span class="app-brand">KollegeApply</span>'
+    f'    <span class="app-sep"></span>'
+    f'    <span class="app-page">Plag Checker</span>'
+    f'    <span class="app-badge">INTERNAL</span>'
+    f'  </div>'
+    f'  <nav class="app-nav">'
+    f'    <span class="nav-pill pill-blue">'
+    f'      <span class="nav-dot" style="background:var(--blue)"></span>🔍 Detection</span>'
+    f'    <span class="nav-pill {_pill_web}">🌐 Web Check</span>'
+    f'    <span class="nav-pill {_pill_res}">{_dot_res}📊 Results</span>'
+    f'  </nav>'
+    f'  <div class="app-header-right">{_corpus_badge}</div>'
     f'</div>',
     unsafe_allow_html=True,
 )
@@ -767,7 +802,7 @@ with right_col:
 
         # Web verification
         st.markdown('<span class="settings-label">🌐 Web verification</span>', unsafe_allow_html=True)
-        run_web = st.checkbox("Check against open web", value=False)
+        run_web = st.checkbox("Check against open web", value=False, key="run_web_chk")
         st.markdown(
             '<span class="settings-sub">Compare content against publicly accessible web pages.</span>',
             unsafe_allow_html=True,
