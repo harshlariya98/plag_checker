@@ -146,21 +146,18 @@ def verdict_for(score, threshold):
 
 
 def normalise_new(df):
-    """Map columns of the user-uploaded CSV to url / entity / description."""
+    """Map columns of the user-uploaded CSV to url / description."""
     url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
-    ent_col  = smart_col(df, ["entity","entity_type","type","category","tag","section"])
     desc_col = smart_col(df, ["description","content","article","body","html",
                                "article_html","text","article_body"])
     if not url_col:
         return None, f"No URL column found. Columns: {list(df.columns)}"
     rename = {url_col: "url"}
-    if ent_col:  rename[ent_col]  = "entity"
     if desc_col: rename[desc_col] = "description"
     df = df.rename(columns=rename)
-    if "entity"      not in df.columns: df["entity"]      = "unknown"
     if "description" not in df.columns: df["description"] = ""
-    return df[["url","entity","description"] +
-               [c for c in df.columns if c not in ("url","entity","description")]].copy(), None
+    return df[["url","description"] +
+               [c for c in df.columns if c not in ("url","description")]].copy(), None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -168,21 +165,8 @@ def normalise_new(df):
 # ─────────────────────────────────────────────────────────────────────────────
 @st.cache_data(show_spinner=False)
 def load_corpus(path):
-    df = pd.read_csv(path, usecols=lambda c: c in
-                     ["url","description","entity","entity_type","type","category"])
+    df = pd.read_csv(path, usecols=lambda c: c in ["url","description"])
     df["url"] = df["url"].astype(str).str.strip()
-    # normalise entity
-    ent = smart_col(df, ["entity","entity_type","type","category"])
-    if ent and ent != "entity":
-        df = df.rename(columns={ent: "entity"})
-    if "entity" not in df.columns:
-        # derive entity from URL slug suffix (e.g. -admission, -hostel)
-        df["entity"] = (
-            df["url"].str.rstrip("/")
-                     .str.split("/").str[-1]
-                     .str.extract(r"-([a-z]+)$", expand=False)
-                     .fillna("general")
-        )
     if "description" not in df.columns:
         df["description"] = ""
     df["description"] = df["description"].astype(str)
@@ -270,7 +254,7 @@ step(1, "Upload new articles to check")
 st.markdown(
     '<div class="callout">Upload a CSV of the <b>new articles</b> you want to verify. '
     'Required column: <code>url</code>. '
-    'Optional: <code>entity</code>, <code>description</code> (HTML — if missing, fetched from URL).'
+    'Optional: <code>description</code> (HTML — if missing, fetched from URL).'
     '</div>',
     unsafe_allow_html=True,
 )
@@ -292,20 +276,17 @@ with st.container(border=True):
                 df2, err2 = normalise_new(raw_new)
                 if err2:
                     st.warning(err2)
-                    mc1, mc2, mc3 = st.columns(3)
+                    mc1, mc2 = st.columns(2)
                     url_c  = mc1.selectbox("URL column",         list(raw_new.columns), key="nu")
-                    ent_c  = mc2.selectbox("Entity column",      list(raw_new.columns), key="ne")
-                    desc_c = mc3.selectbox("Description column",
+                    desc_c = mc2.selectbox("Description column",
                                            ["(none)"] + list(raw_new.columns), key="nd")
-                    rename = {url_c: "url", ent_c: "entity"}
+                    rename = {url_c: "url"}
                     if desc_c != "(none)": rename[desc_c] = "description"
                     df2 = raw_new.rename(columns=rename)
-                    if "entity"      not in df2.columns: df2["entity"]      = "unknown"
                     if "description" not in df2.columns: df2["description"] = ""
                 new_df = df2
                 if new_df is not None:
                     new_df["url"]         = new_df["url"].astype(str).str.strip()
-                    new_df["entity"]      = new_df["entity"].astype(str).str.strip()
                     new_df["description"] = new_df["description"].astype(str).fillna("")
                     has_desc = (new_df["description"].str.strip().str.len() > 10).sum()
                     st.success(
@@ -320,7 +301,7 @@ with st.container(border=True):
             urls = [u.strip() for u in pasted.splitlines()
                     if u.strip().startswith("http")]
             if urls:
-                new_df = pd.DataFrame({"url": urls, "entity": "unknown", "description": ""})
+                new_df = pd.DataFrame({"url": urls, "description": ""})
                 st.success(f"✅ {len(urls)} URLs (content will be fetched from each URL)")
             else:
                 st.error("No valid URLs found.")
@@ -449,17 +430,15 @@ if new_df is not None and len(new_df) > 0:
             wr       = web_res.get(row.url, {})
             _, icon, vlabel = verdict_for(sc, dup_threshold)
             final_rows.append({
-                "url":                     row.url,
-                "entity":                  row.entity,
-                "word_count":              wc,
-                "similarity_to_corpus_%":  sc,
-                "verdict":                 f"{icon} {vlabel}",
-                "matched_existing_url":    corp_row["url"],
-                "matched_existing_entity": corp_row.get("entity", ""),
-                "web_plag_score":          wr.get("plagiarism_score"),
-                "web_verdict":             wr.get("verdict", ""),
-                "top_web_sources":         wr.get("top_sources", ""),
-                "_matches":                wr.get("matches", []),
+                "url":                    row.url,
+                "word_count":             wc,
+                "similarity_to_corpus_%": sc,
+                "verdict":                f"{icon} {vlabel}",
+                "matched_existing_url":   corp_row["url"],
+                "web_plag_score":         wr.get("plagiarism_score"),
+                "web_verdict":            wr.get("verdict", ""),
+                "top_web_sources":        wr.get("top_sources", ""),
+                "_matches":               wr.get("matches", []),
             })
 
         st.session_state["results"] = final_rows
@@ -535,25 +514,21 @@ if results:
         else:
             tdf = pd.DataFrame([{
                 "New Article":      r["url"],
-                "Entity":           r["entity"],
                 "Words":            r["word_count"],
                 "Similarity %":     r["similarity_to_corpus_%"],
                 "Verdict":          r["verdict"],
                 "Closest existing": r["matched_existing_url"],
-                "Match entity":     r["matched_existing_entity"],
             } for r in show])
 
             st.dataframe(
                 tdf, hide_index=True, use_container_width=True,
                 column_config={
                     "New Article":      st.column_config.LinkColumn(width="large"),
-                    "Entity":           st.column_config.TextColumn(width="small"),
                     "Words":            st.column_config.NumberColumn(width="small"),
                     "Similarity %":     st.column_config.ProgressColumn(
                         min_value=0, max_value=100, format="%.0f%%", width="small"),
                     "Verdict":          st.column_config.TextColumn(width="medium"),
                     "Closest existing": st.column_config.LinkColumn(width="large"),
-                    "Match entity":     st.column_config.TextColumn(width="small"),
                 },
             )
 
@@ -563,21 +538,15 @@ if results:
                 for r in flagged:
                     sc = r["similarity_to_corpus_%"]
                     cls, icon, vlabel = verdict_for(sc, dup_threshold)
-                    new_e    = html_module.escape(r["url"])
-                    corp_u   = html_module.escape(r["matched_existing_url"], quote=True)
-                    corp_ue  = html_module.escape(r["matched_existing_url"])
-                    corp_ent = html_module.escape(str(r.get("matched_existing_entity", "")))
-                    new_ent  = html_module.escape(str(r.get("entity", "")))
+                    new_e  = html_module.escape(r["url"])
+                    corp_u = html_module.escape(r["matched_existing_url"], quote=True)
+                    corp_ue = html_module.escape(r["matched_existing_url"])
                     st.markdown(
                         f'<div class="res-card {cls}">'
                         f'<div class="rcscore">{sc:.0f}%</div>'
                         f'<div class="rcbody">'
-                        f'<b>New:</b> <a href="{new_e}" target="_blank">{new_e}</a> '
-                        f'<span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;'
-                        f'border-radius:99px;font-size:.75rem;font-weight:600;">{new_ent}</span>'
-                        f'<br><b>Matches:</b> <a href="{corp_u}" target="_blank">{corp_ue}</a> '
-                        f'<span style="background:#fce7f3;color:#9d174d;padding:2px 8px;'
-                        f'border-radius:99px;font-size:.75rem;font-weight:600;">{corp_ent}</span>'
+                        f'<b>New:</b> <a href="{new_e}" target="_blank">{new_e}</a><br>'
+                        f'<b>Matches:</b> <a href="{corp_u}" target="_blank">{corp_ue}</a>'
                         f'<div class="rcmeta">{icon} {vlabel} · {r["word_count"]:,} words</div>'
                         f'</div></div>',
                         unsafe_allow_html=True,
@@ -639,7 +608,7 @@ if results:
         fname, "text/csv", type="primary",
     )
     st.caption(
-        "Columns: url · entity · word_count · similarity_to_corpus_% · verdict · "
-        "matched_existing_url · matched_existing_entity · risk_level"
+        "Columns: url · word_count · similarity_to_corpus_% · verdict · "
+        "matched_existing_url · risk_level"
         + (" · web_plag_score · web_verdict · top_web_sources" if run_web else "")
     )
