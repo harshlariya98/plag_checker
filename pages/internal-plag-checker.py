@@ -105,7 +105,7 @@ st.markdown("""
     --g-red:   linear-gradient(135deg, #EF4444 0%, #f87171 100%);
 }
 
-@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Gabarito:wght@400;600;700&display=swap');
 
 html, body, [class*="css"] {
     font-family: 'Lato', -apple-system, sans-serif !important;
@@ -165,7 +165,8 @@ html, body, [class*="css"] {
     padding: 3px 10px; border-radius: 99px; margin-bottom: .75rem;
 }
 .hero h1 {
-    font-size: 1.8rem; font-weight: 900; color: #fff;
+    font-family: 'Gabarito', 'Lato', sans-serif;
+    font-size: 1.85rem; font-weight: 700; color: #fff;
     margin: 0 0 .4rem; letter-spacing: -.4px; line-height: 1.2;
 }
 .hero h1 span { color: #F47062; }
@@ -178,17 +179,18 @@ section[data-testid="stSidebar"] {
 }
 section[data-testid="stSidebar"] > div { padding-top: 1.25rem; }
 .sb-brand {
-    display: flex; align-items: center; gap: .5rem;
-    padding: .5rem 1rem 1rem;
+    display: flex; align-items: center; gap: .6rem;
+    padding: .75rem 1rem 1.1rem;
+    border-bottom: 1px solid rgba(22,50,79,.08);
+    margin-bottom: .5rem;
 }
-.sb-brand-dot {
-    width: 28px; height: 28px; border-radius: 8px;
-    background: var(--g-hero);
-    display: flex; align-items: center; justify-content: center;
-    font-size: .85rem;
+.sb-brand img { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.sb-brand-name {
+    font-family: 'Gabarito', 'Lato', sans-serif;
+    font-size: 1.15rem; font-weight: 600;
+    color: #16324F; letter-spacing: -.35px; line-height: 1.2;
 }
-.sb-brand-name { font-size: .78rem; font-weight: 900; color: var(--navy); letter-spacing: -.2px; }
-.sb-brand-sub  { font-size: .65rem; color: #9CA3AF; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.sb-brand-sub { font-size: .62rem; color: #9CA3AF; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; margin-top: 1px; }
 section[data-testid="stSidebar"] hr { border-color: rgba(22,50,79,.1) !important; }
 section[data-testid="stSidebar"] label { color: #374151 !important; font-size: .82rem !important; font-weight: 700 !important; }
 section[data-testid="stSidebar"] .stSlider > div > div > div { background: var(--coral) !important; }
@@ -584,9 +586,11 @@ def _ensure_corpus_index():
 with st.sidebar:
     st.markdown(
         '<div class="sb-brand">'
-        '<div class="sb-brand-dot">🎓</div>'
-        '<div><div class="sb-brand-name">KollegeApply</div>'
-        '<div class="sb-brand-sub">Plag Checker</div></div>'
+        '<img src="https://www.kollegeapply.com/new-logo.svg" alt="KollegeApply logo">'
+        '<div>'
+        '<div class="sb-brand-name">KollegeApply</div>'
+        '<div class="sb-brand-sub">Plag Checker · Internal</div>'
+        '</div>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -626,7 +630,14 @@ with st.sidebar:
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(
     '<div class="hero">'
-    '<div class="hero-eyebrow">🔍 Internal Tool</div>'
+    '<div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.85rem;">'
+    '<img src="https://www.kollegeapply.com/new-logo.svg" '
+    '     style="width:36px;height:36px;object-fit:contain;filter:brightness(0) invert(1);opacity:.9;" '
+    '     alt="KollegeApply">'
+    '<span style="font-family:\'Gabarito\',\'Lato\',sans-serif;font-size:1.1rem;font-weight:600;'
+    '             color:rgba(255,255,255,.9);letter-spacing:-.2px;">KollegeApply</span>'
+    '<div class="hero-eyebrow" style="margin-bottom:0;margin-left:.25rem;">🔍 Internal Tool</div>'
+    '</div>'
     '<h1>Plag <span>Checker</span> ✨</h1>'
     '<p>Drop your CSV, we\'ll catch the copycats. Checks new articles against '
     'the full KollegeApply database — similarity scores, closest match, and '
