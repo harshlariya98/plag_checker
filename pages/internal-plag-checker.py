@@ -241,13 +241,8 @@ div[data-testid="stVerticalBlockBorderWrapper"] {
     border: 1px solid var(--border) !important;
     background: var(--surface) !important;
     box-shadow: var(--shadow-xs) !important;
-    overflow: visible !important;
     margin-bottom: 12px !important;
     animation: fadeUp .35s ease both;
-}
-/* Add inner padding to bordered container content */
-div[data-testid="stVerticalBlockBorderWrapper"] > div > div[data-testid="stVerticalBlock"] {
-    padding: 4px 8px 8px !important;
 }
 
 .panel-hd {
@@ -271,8 +266,7 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div > div[data-testid="stVerti
 .settings-hd {
     display: flex; align-items: center; gap: 7px;
     font-size: 13px; font-weight: 700; color: var(--navy);
-    padding-bottom: 12px; margin-bottom: 14px;
-    border-bottom: 1px solid var(--border);
+    margin-bottom: 8px;
 }
 .settings-block {
     padding-bottom: 14px; margin-bottom: 14px;
@@ -295,30 +289,24 @@ div[data-testid="stVerticalBlockBorderWrapper"] > div > div[data-testid="stVerti
 .thr-labels span:last-child { margin-left: auto; }
 .tld { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 
-/* ── Radio as tabs ─────────────────────────────────────────────────────────── */
-div[data-testid="stRadio"] { margin: 0 0 14px !important; }
-div[data-testid="stRadio"] > div {
-    display: inline-flex !important; flex-direction: row !important;
-    background: var(--bg) !important; border-radius: var(--radius-sm) !important;
-    padding: 3px !important; gap: 2px !important;
-    border: 1px solid var(--border) !important;
+/* ── Tabs (replacing radio) ────────────────────────────────────────────────── */
+div[data-testid="stTabs"] [data-testid="stTabsContainer"] {
+    gap: 0 !important; border-bottom: 1px solid var(--border) !important;
+    background: transparent !important; margin-bottom: 16px !important;
 }
-div[data-testid="stRadio"] > div > label {
-    display: flex !important; align-items: center !important;
-    padding: .33rem .9rem !important; border-radius: 6px !important;
+div[data-testid="stTabs"] button[role="tab"] {
     font-size: 13px !important; font-weight: 600 !important;
-    cursor: pointer !important; color: var(--muted) !important;
-    transition: all .15s !important; margin: 0 !important;
-    user-select: none !important; white-space: nowrap !important;
+    color: var(--muted) !important; padding: 8px 14px !important;
+    border: none !important; border-radius: 0 !important;
+    background: transparent !important;
+    border-bottom: 2px solid transparent !important;
+    transition: color .15s, border-color .15s !important;
 }
-div[data-testid="stRadio"] > div > label:has(input:checked) {
-    background: var(--surface) !important; color: var(--navy) !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,.1) !important;
+div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
+    color: var(--navy) !important;
+    border-bottom-color: var(--blue) !important;
 }
-div[data-testid="stRadio"] > div > label input[type="radio"] {
-    position: absolute !important; opacity: 0 !important; width: 1px !important; height: 1px !important;
-}
-div[data-testid="stRadio"] > div > label > div > div:first-child { display: none !important; }
+div[data-testid="stTabs"] button[role="tab"]:hover { color: var(--navy) !important; }
 
 /* ── File uploader ─────────────────────────────────────────────────────────── */
 div[data-testid="stFileUploader"] {
@@ -810,13 +798,9 @@ with left_col:
         _panel_hd("1", "Add content to check", color="blue")
 
         new_df = None
-        new_src = st.radio(
-            "Input method", ["📂  Upload CSV", "🔗  Paste URLs"],
-            horizontal=True, key="new_src",
-            label_visibility="collapsed",
-        )
+        tab_csv, tab_url = st.tabs(["📂  Upload CSV", "🔗  Paste URLs"])
 
-        if new_src == "📂  Upload CSV":
+        with tab_csv:
             new_file = st.file_uploader(
                 "upload", type=["csv"], key="new_upload",
                 label_visibility="collapsed",
@@ -859,7 +843,8 @@ with left_col:
                         if has_desc: parts.append(f"{has_desc:,} have HTML content")
                         if no_desc:  parts.append(f"{no_desc:,} will be fetched live")
                         st.success("  ·  ".join(parts))
-        else:
+
+        with tab_url:
             pasted = st.text_area(
                 "One URL per line", height=140,
                 placeholder="https://www.kollegeapply.com/article/…\nhttps://…",
