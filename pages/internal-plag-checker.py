@@ -85,10 +85,20 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-/* ── reset & base ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* ── KollegeApply brand tokens ── */
+:root {
+    --ka-navy:   #16324F;   /* primary brand — nav, headings */
+    --ka-coral:  #F47062;   /* accent CTA */
+    --ka-blue:   #408EE0;   /* links */
+    --ka-navy-15: rgba(22,50,79,.12);
+    --ka-navy-5:  rgba(22,50,79,.05);
+    --ka-coral-10: rgba(244,112,98,.1);
+}
 
-html, body, [class*="css"] { font-family: 'Inter', -apple-system, sans-serif !important; }
+/* ── reset & base ── */
+@import url('https://fonts.googleapis.com/css2?family=Lato:wght@400;700&display=swap');
+
+html, body, [class*="css"] { font-family: 'Lato', -apple-system, sans-serif !important; }
 
 .block-container {
     padding: 2rem 2.5rem 4rem !important;
@@ -97,40 +107,48 @@ html, body, [class*="css"] { font-family: 'Inter', -apple-system, sans-serif !im
 
 /* ── sidebar ── */
 section[data-testid="stSidebar"] {
-    background: #FAFAFA !important;
-    border-right: 1px solid #E5E7EB !important;
+    background: #F4F6F8 !important;
+    border-right: 1px solid rgba(22,50,79,.15) !important;
 }
 section[data-testid="stSidebar"] > div { padding-top: 1.5rem; }
 section[data-testid="stSidebar"] .sidebar-logo {
-    font-size: .7rem; font-weight: 600; letter-spacing: .1em;
-    text-transform: uppercase; color: #9CA3AF; padding: 0 1rem 1rem;
+    font-size: .7rem; font-weight: 700; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--ka-navy); opacity: .7;
+    padding: 0 1rem 1rem;
 }
-section[data-testid="stSidebar"] hr { border-color: #E5E7EB !important; }
-section[data-testid="stSidebar"] label { color: #6B7280 !important; font-size: .8rem !important; font-weight: 500 !important; }
-section[data-testid="stSidebar"] .stSlider > div > div > div { background: #4F46E5 !important; }
+section[data-testid="stSidebar"] hr { border-color: rgba(22,50,79,.15) !important; }
+section[data-testid="stSidebar"] label { color: #4B5563 !important; font-size: .8rem !important; font-weight: 700 !important; }
+section[data-testid="stSidebar"] .stSlider > div > div > div { background: var(--ka-coral) !important; }
 section[data-testid="stSidebar"] p { color: #374151 !important; font-size: .85rem !important; }
 section[data-testid="stSidebar"] small { color: #9CA3AF !important; }
 
 /* ── page header ── */
 .page-header { margin-bottom: 2rem; }
 .page-header h1 {
-    font-size: 1.5rem; font-weight: 700; color: #111827;
-    margin: 0 0 .35rem; letter-spacing: -.3px;
+    font-size: 1.5rem; font-weight: 700; color: var(--ka-navy);
+    margin: 0 0 .35rem; letter-spacing: -.2px;
 }
-.page-header p { font-size: .9rem; color: #6B7280; margin: 0; line-height: 1.6; }
+.page-header .ka-tag {
+    display: inline-block; font-size: .65rem; font-weight: 700;
+    letter-spacing: .08em; text-transform: uppercase;
+    background: var(--ka-coral); color: #fff;
+    padding: 2px 8px; border-radius: 4px; margin-right: .5rem;
+    vertical-align: middle; position: relative; top: -1px;
+}
+.page-header p { font-size: .9rem; color: #4B5563; margin: 0; line-height: 1.6; }
 
 /* ── corpus status bar ── */
 .status-bar {
     display: flex; align-items: center; gap: .75rem;
-    background: #F0FDF4; border: 1px solid #BBF7D0;
+    background: rgba(22,50,79,.05); border: 1px solid rgba(22,50,79,.18);
     border-radius: 10px; padding: .6rem 1rem;
-    font-size: .85rem; font-weight: 500; color: #166534;
+    font-size: .85rem; font-weight: 700; color: var(--ka-navy);
     margin-bottom: 1.75rem;
 }
 .status-bar .dot {
     width: 8px; height: 8px; border-radius: 50%;
     background: #16A34A; flex-shrink: 0;
-    box-shadow: 0 0 0 3px rgba(22,163,74,.2);
+    box-shadow: 0 0 0 3px rgba(22,163,74,.25);
 }
 .status-bar.error { background: #FEF2F2; border-color: #FECACA; color: #991B1B; }
 .status-bar.error .dot { background: #DC2626; box-shadow: 0 0 0 3px rgba(220,38,38,.2); }
@@ -141,31 +159,38 @@ section[data-testid="stSidebar"] small { color: #9CA3AF !important; }
     margin: 2rem 0 .75rem;
 }
 .section-num {
-    width: 1.6rem; height: 1.6rem; border-radius: 50%;
-    background: #4F46E5; color: #fff;
+    width: 1.75rem; height: 1.75rem; border-radius: 50%;
+    background: var(--ka-navy); color: #fff;
     display: inline-flex; align-items: center; justify-content: center;
     font-size: .75rem; font-weight: 700; flex-shrink: 0;
 }
-.section-title { font-size: .95rem; font-weight: 600; color: #111827; }
+.section-title { font-size: .95rem; font-weight: 700; color: var(--ka-navy); }
 
 /* ── callout ── */
 .callout {
-    background: #F8FAFF; border: 1px solid #DBEAFE;
+    background: rgba(64,142,224,.07); border: 1px solid rgba(64,142,224,.25);
     border-radius: 8px; padding: .75rem 1rem;
-    font-size: .83rem; color: #1E40AF; line-height: 1.6;
+    font-size: .83rem; color: #1a4a7a; line-height: 1.6;
     margin: .5rem 0 1rem;
 }
-.callout.warn { background: #FFFBEB; border-color: #FDE68A; color: #92400E; }
-.callout.success { background: #F0FDF4; border-color: #BBF7D0; color: #166534; }
+.callout.warn {
+    background: rgba(244,112,98,.07); border-color: rgba(244,112,98,.3);
+    color: #7a2a1e;
+}
+.callout.success {
+    background: rgba(22,163,74,.07); border-color: rgba(22,163,74,.25);
+    color: #166534;
+}
 
 /* ── build steps (first-time index) ── */
 .build-wrap {
-    background: #fff; border: 1px solid #E5E7EB;
+    background: #fff; border: 1px solid rgba(22,50,79,.12);
     border-radius: 12px; padding: 1.5rem 1.75rem; margin-bottom: 1rem;
 }
 .build-step-title {
-    font-size: .8rem; font-weight: 600; letter-spacing: .05em;
-    text-transform: uppercase; color: #6B7280; margin-bottom: .5rem;
+    font-size: .8rem; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; color: var(--ka-navy); opacity: .6;
+    margin-bottom: .5rem;
 }
 .eta-label { font-size: .8rem; color: #9CA3AF; margin: .25rem 0 0; }
 
@@ -179,40 +204,41 @@ section[data-testid="stSidebar"] small { color: #9CA3AF !important; }
 .stat-row { display: flex; gap: 1rem; margin: 1rem 0 1.25rem; flex-wrap: wrap; }
 .stat-tile {
     flex: 1; min-width: 120px;
-    background: #fff; border: 1px solid #E5E7EB;
+    background: #fff; border: 1px solid rgba(22,50,79,.12);
     border-radius: 10px; padding: .85rem 1rem;
     text-align: center;
 }
-.stat-tile .sv { font-size: 1.65rem; font-weight: 700; color: #111827; line-height: 1.1; }
-.stat-tile .sl { font-size: .7rem; font-weight: 600; letter-spacing: .06em;
+.stat-tile .sv { font-size: 1.65rem; font-weight: 700; color: var(--ka-navy); line-height: 1.1; }
+.stat-tile .sl { font-size: .7rem; font-weight: 700; letter-spacing: .06em;
                  text-transform: uppercase; color: #9CA3AF; margin-top: .25rem; }
 .stat-tile.red   .sv { color: #DC2626; }
 .stat-tile.amber .sv { color: #D97706; }
 .stat-tile.green .sv { color: #059669; }
-.stat-tile.indigo .sv { color: #4F46E5; }
+.stat-tile.brand .sv { color: var(--ka-coral); }
 
 /* ── alert banner ── */
 .alert-banner {
     display: flex; align-items: center; gap: .75rem;
-    background: #FEF2F2; border: 1px solid #FECACA;
+    background: rgba(244,112,98,.08); border: 1px solid rgba(244,112,98,.35);
     border-radius: 10px; padding: .85rem 1.1rem;
-    font-size: .875rem; color: #991B1B; font-weight: 500;
+    font-size: .875rem; color: #7a2a1e; font-weight: 700;
     margin: .75rem 0;
 }
 .alert-banner.ok {
-    background: #F0FDF4; border-color: #BBF7D0; color: #166534;
+    background: rgba(22,163,74,.07); border-color: rgba(22,163,74,.3);
+    color: #166534;
 }
 
 /* ── result cards ── */
 .rc {
-    background: #fff; border: 1px solid #E5E7EB;
+    background: #fff; border: 1px solid rgba(22,50,79,.1);
     border-radius: 10px; padding: .85rem 1.1rem;
     margin: .4rem 0; display: flex; gap: 1rem; align-items: flex-start;
     transition: box-shadow .15s;
 }
-.rc:hover { box-shadow: 0 4px 12px rgba(0,0,0,.06); }
+.rc:hover { box-shadow: 0 4px 16px rgba(22,50,79,.08); }
 .rc.danger { border-left: 3px solid #DC2626; }
-.rc.warn   { border-left: 3px solid #F59E0B; }
+.rc.warn   { border-left: 3px solid var(--ka-coral); }
 .rc.ok     { border-left: 3px solid #059669; }
 
 .rc-pct {
@@ -220,43 +246,58 @@ section[data-testid="stSidebar"] small { color: #9CA3AF !important; }
     text-align: center; line-height: 1; padding-top: .1rem;
 }
 .rc.danger .rc-pct { color: #DC2626; }
-.rc.warn   .rc-pct { color: #F59E0B; }
+.rc.warn   .rc-pct { color: var(--ka-coral); }
 .rc.ok     .rc-pct { color: #059669; }
 
 .rc-body { flex: 1; font-size: .84rem; color: #374151; line-height: 1.65; }
-.rc-body a { color: #4F46E5; text-decoration: none; }
+.rc-body a { color: var(--ka-blue); text-decoration: none; }
 .rc-body a:hover { text-decoration: underline; }
-.rc-label { font-size: .7rem; font-weight: 600; letter-spacing: .05em;
+.rc-label { font-size: .7rem; font-weight: 700; letter-spacing: .05em;
             text-transform: uppercase; color: #9CA3AF; margin-bottom: .1rem; }
 .rc-badge {
     display: inline-block;
-    padding: 1px 8px; border-radius: 99px; font-size: .72rem; font-weight: 600;
+    padding: 1px 8px; border-radius: 99px; font-size: .72rem; font-weight: 700;
     margin-left: .35rem; vertical-align: middle;
 }
 .rc-badge.danger { background: #FEE2E2; color: #991B1B; }
-.rc-badge.warn   { background: #FEF3C7; color: #92400E; }
+.rc-badge.warn   { background: rgba(244,112,98,.12); color: #7a2a1e; }
 .rc-badge.ok     { background: #D1FAE5; color: #065F46; }
 .rc-meta { font-size: .75rem; color: #9CA3AF; margin-top: .3rem; }
 
 /* ── tab switcher ── */
 div[data-testid="stSegmentedControl"] { margin: .75rem 0 1rem; }
 
-/* ── primary button ── */
+/* ── primary button (KollegeApply navy) ── */
 .stButton > button[kind="primary"] {
-    background: #4F46E5 !important; border: none !important;
-    font-weight: 600 !important; letter-spacing: .01em !important;
-    box-shadow: 0 1px 3px rgba(79,70,229,.3) !important;
+    background: var(--ka-navy) !important; border: none !important;
+    font-weight: 700 !important; letter-spacing: .01em !important;
+    box-shadow: 0 1px 3px rgba(22,50,79,.35) !important;
     border-radius: 8px !important;
 }
 .stButton > button[kind="primary"]:hover {
-    background: #4338CA !important;
-    box-shadow: 0 4px 12px rgba(79,70,229,.35) !important;
+    background: #0f2236 !important;
+    box-shadow: 0 4px 14px rgba(22,50,79,.4) !important;
 }
+
+/* download button — coral accent */
+div[data-testid="stDownloadButton"] > button {
+    background: var(--ka-coral) !important; border: none !important;
+    color: #fff !important; font-weight: 700 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 1px 3px rgba(244,112,98,.35) !important;
+}
+div[data-testid="stDownloadButton"] > button:hover {
+    background: #e05a47 !important;
+    box-shadow: 0 4px 14px rgba(244,112,98,.4) !important;
+}
+
+/* ── links ── */
+a { color: var(--ka-blue) !important; }
 
 /* ── misc ── */
 .stDataFrame { border-radius: 10px !important; overflow: hidden; }
 div[data-testid="stExpander"] { border-radius: 10px !important; }
-.stProgress > div > div > div { background: #4F46E5 !important; border-radius: 99px !important; }
+.stProgress > div > div > div { background: var(--ka-coral) !important; border-radius: 99px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -439,7 +480,7 @@ with st.sidebar:
     st.markdown(
         '<small>'
         '<b style="color:#059669">●</b> &lt;40% unique &nbsp; '
-        '<b style="color:#D97706">●</b> 40–65% review &nbsp; '
+        '<b style="color:#F47062">●</b> 40–65% review &nbsp; '
         '<b style="color:#DC2626">●</b> &gt;65% duplicate'
         '</small>',
         unsafe_allow_html=True,
@@ -451,9 +492,9 @@ with st.sidebar:
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(
     '<div class="page-header">'
-    '<h1>Internal Plagiarism Checker</h1>'
-    '<p>Upload a CSV of new articles to check them against the KollegeApply article database.'
-    ' Results show per-article similarity scores and closest matching existing article.</p>'
+    '<h1><span class="ka-tag">Internal</span>Plagiarism Checker</h1>'
+    '<p>Upload a CSV of new articles to check them against the KollegeApply article database. '
+    'Results show per-article similarity scores and the closest matching existing article.</p>'
     '</div>',
     unsafe_allow_html=True,
 )
@@ -564,7 +605,7 @@ if new_df is not None and len(new_df) > 0:
                  else f"~{int(est_sec)}s")
     st.markdown(
         f'<div class="stat-row">'
-        f'<div class="stat-tile indigo"><div class="sv">{n_new}</div><div class="sl">New articles</div></div>'
+        f'<div class="stat-tile brand"><div class="sv">{n_new}</div><div class="sl">New articles</div></div>'
         f'<div class="stat-tile"><div class="sv">{n_corp:,}</div><div class="sl">Corpus size</div></div>'
         f'<div class="stat-tile"><div class="sv">{n_fetch}</div><div class="sl">URLs to fetch</div></div>'
         f'<div class="stat-tile"><div class="sv">{est_label}</div><div class="sl">Est. time</div></div>'
@@ -833,7 +874,7 @@ if results:
                                     f'<i>"{html_module.escape(m["passage"])}"</i><br>'
                                     f'<span style="font-size:.75rem;color:#9CA3AF;">'
                                     f'{m["score"]:.0f}% match &nbsp;·&nbsp; '
-                                    f'<a href="{src}" target="_blank" style="color:#4F46E5;">{src}</a>'
+                                    f'<a href="{src}" target="_blank" style="color:#408EE0;">{src}</a>'
                                     f'</span></div>',
                                     unsafe_allow_html=True,
                                 )
