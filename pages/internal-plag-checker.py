@@ -8,7 +8,10 @@ Users only need to upload the new articles CSV to check.
 import html as html_module
 import io
 import os
+import re
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
 
 import joblib
@@ -19,7 +22,16 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from plag_utils import extract_text_from_html, fetch_text, check_article
+from plag_utils import fetch_text, check_article, extract_text_from_html
+
+_TAG_RE = re.compile(r"<[^>]+>")
+
+def _fast_strip(html_str):
+    """Strip HTML tags with a regex — ~50× faster than trafilatura for bulk use."""
+    if not html_str or len(html_str) < 10:
+        return ""
+    text = _TAG_RE.sub(" ", html_str)
+    return re.sub(r"\s+", " ", text).strip()
 
 # ── paths ─────────────────────────────────────────────────────────────────────
 CORPUS_PATH = "/Users/harsh/Documents/final_data_plag.csv"
@@ -224,25 +236,43 @@ def _ensure_corpus_index():
     descs = df["description"].tolist()
     n     = len(urls)
 
-    # Step A — parse HTML
+    # Step A — parse HTML in parallel
     st.markdown(
         '<div class="callout"><b>Building index for the first time</b> — '
-        'this takes a few minutes once, then loads in seconds every time after.</div>',
+        'saved to disk, loads in seconds every time after.</div>',
         unsafe_allow_html=True,
     )
     st.markdown("**Step 1 / 2 — Parsing article HTML…**")
     prog_a    = st.progress(0.0)
     counter_a = st.empty()
-    texts = []
-    for i, html in enumerate(descs, 1):
-        texts.append(extract_text_from_html(html))
-        if i % 500 == 0 or i == n:
-            prog_a.progress(i / n)
-            counter_a.markdown(
-                f'<span style="font-size:.85rem;color:#475569;">'
-                f'📄 <b>{i:,}</b> / <b>{n:,}</b> articles parsed</span>',
-                unsafe_allow_html=True,
-            )
+
+    texts    = [""] * n
+    done     = threading.Event()
+    count_   = [0]
+    lock_    = threading.Lock()
+
+    def _parse(args):
+        idx, html_str = args
+        result = _fast_strip(html_str)
+        with lock_:
+            count_[0] += 1
+        return idx, result
+
+    n_workers = min(16, os.cpu_count() or 4)
+    with ThreadPoolExecutor(max_workers=n_workers) as pool:
+        futures = [pool.submit(_parse, (i, d)) for i, d in enumerate(descs)]
+        completed = 0
+        for fut in as_completed(futures):
+            idx, txt = fut.result()
+            texts[idx] = txt
+            completed += 1
+            if completed % 1000 == 0 or completed == n:
+                prog_a.progress(completed / n)
+                counter_a.markdown(
+                    f'<span style="font-size:.85rem;color:#475569;">'
+                    f'📄 <b>{completed:,}</b> / <b>{n:,}</b> articles parsed</span>',
+                    unsafe_allow_html=True,
+                )
     prog_a.empty()
     counter_a.empty()
 
@@ -440,7 +470,7 @@ if new_df is not None and len(new_df) > 0:
                     unsafe_allow_html=True,
                 )
                 desc = str(row.description).strip()
-                text = extract_text_from_html(desc) if len(desc) > 10 else fetch_text(row.url)
+                text = _fast_strip(desc) if len(desc) > 10 else fetch_text(row.url)
                 new_texts.append(text)
                 new_wc.append(len(text.split()))
                 prog.progress(i / n_new)
