@@ -968,9 +968,17 @@ with left_col:
                     vt      = [t for _, t in valid_new]
                     new_mat = corpus_vec.transform(vt)
                     sims    = cosine_similarity(new_mat, corpus_mat)
+                    # Build a URL→index map so we can exclude self-matches
+                    corpus_url_idx = {u: i for i, u in enumerate(corpus_urls)}
                     for ni, (orig_i, _) in enumerate(valid_new):
-                        best_j  = int(sims[ni].argmax())
-                        best_sc = round(float(sims[ni, best_j]) * 100, 1)
+                        row_url = new_df.iloc[orig_i]["url"]
+                        scores  = sims[ni].copy()
+                        # If this article is already in the corpus, mask it out
+                        # so we find the best *other* match instead of itself
+                        if row_url in corpus_url_idx:
+                            scores[corpus_url_idx[row_url]] = -1.0
+                        best_j  = int(scores.argmax())
+                        best_sc = round(float(scores[best_j]) * 100, 1)
                         sim_results[orig_i] = (best_sc, best_j)
                 s3.update(label="⚡ Similarity computed", state="complete")
 
