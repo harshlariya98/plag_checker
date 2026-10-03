@@ -14,3 +14,4 @@ numpy
 sqlalchemy
 psycopg2-binary
 pymysql
+sentence-transformers

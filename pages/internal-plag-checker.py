@@ -28,6 +28,18 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from plag_utils import fetch_text, check_article, clear_page_cache, build_passages, normalize
 from rapidfuzz import fuzz
 
+@st.cache_resource(show_spinner=False)
+def _load_embedder():
+    """Load sentence-transformers model once. Returns (model, True) or (None, False)."""
+    try:
+        from sentence_transformers import SentenceTransformer
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        return model, True
+    except Exception:
+        return None, False
+
+_EMBEDDER, _EMBED_AVAILABLE = _load_embedder()
+
 @st.cache_data(show_spinner=False)
 def _logo_b64():
     try:
@@ -749,8 +761,7 @@ def _save_to_disk(key, vec, mat, urls, texts=None):
     save_npz(         os.path.join(CACHE_DIR, f"{key}.mat.npz"), mat)
     joblib.dump(urls, os.path.join(CACHE_DIR, f"{key}.urls.pkl"))
     if texts is not None:
-        short = [t[:6000] for t in texts]
-        joblib.dump(short, os.path.join(CACHE_DIR, f"{key}.texts.pkl"))
+        joblib.dump(texts, os.path.join(CACHE_DIR, f"{key}.texts.pkl"))
 
 
 def _ensure_corpus_index():
@@ -771,7 +782,7 @@ def _ensure_corpus_index():
             texts_path = os.path.join(CACHE_DIR, f"{key}.texts.pkl")
             with st.spinner("Building phrase index (one-time)…"):
                 _df = load_corpus(CORPUS_PATH)
-                short = [t[:6000] for t in _vectorized_strip(_df["description"]).tolist()]
+                short = _vectorized_strip(_df["description"]).tolist()
                 joblib.dump(short, texts_path)
             st.session_state["corpus_texts"] = short
         return
@@ -838,7 +849,7 @@ def _ensure_corpus_index():
     st.session_state["corpus_urls"]  = urls
     st.session_state["corpus_vec"]   = vec
     st.session_state["corpus_mat"]   = mat
-    st.session_state["corpus_texts"] = [t[:6000] for t in texts]
+    st.session_state["corpus_texts"] = texts
     st.rerun()
 
 
@@ -1027,6 +1038,29 @@ with right_col:
             unsafe_allow_html=True,
         )
 
+        st.divider()
+
+        # ── Engine status ─────────────────────────────────────────────────────
+        if _EMBED_AVAILABLE:
+            st.markdown(
+                '<div style="display:flex;align-items:center;gap:7px;padding:8px 10px;'
+                'background:var(--green-bg);border:1px solid var(--green-border);'
+                'border-radius:var(--radius-sm);font-size:11.5px;color:var(--green-text);">'
+                '<span style="width:7px;height:7px;border-radius:50%;background:var(--green);'
+                'flex-shrink:0;animation:pulse 1.8s ease infinite;"></span>'
+                '<strong>Semantic engine active</strong> &nbsp;·&nbsp; paraphrase detection on</div>',
+                unsafe_allow_html=True,
+            )
+        else:
+            st.markdown(
+                '<div style="display:flex;align-items:center;gap:7px;padding:8px 10px;'
+                'background:var(--amber-bg);border:1px solid var(--amber-border);'
+                'border-radius:var(--radius-sm);font-size:11.5px;color:var(--amber-text);">'
+                '<span style="width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;"></span>'
+                'Phrase-only mode &nbsp;·&nbsp; <code>pip install sentence-transformers</code> for semantic</div>',
+                unsafe_allow_html=True,
+            )
+
 
 # ── Left column: upload + run ─────────────────────────────────────────────────
 with left_col:
@@ -1191,7 +1225,8 @@ with left_col:
                           state="complete", expanded=False)
 
             # ── Multi-signal similarity (Copyscape / Turnitin style) ─────────────
-            with st.status("⚡ Computing similarity…", expanded=False) as s3:
+            _sem_label = " + semantic" if _EMBED_AVAILABLE else ""
+            with st.status(f"⚡ Computing similarity{_sem_label}…", expanded=False) as s3:
                 valid_new   = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
                 # tuple: (tfidf_sc, corpus_idx, oov_ratio, copy_score, matched_sents)
                 sim_results = [(0.0, 0, 0.0, 0.0, 0)] * n_new
@@ -1209,21 +1244,46 @@ with left_col:
                     oov = sum(1 for t in tokens if t not in corpus_vocab)
                     return round(oov / len(tokens) * 100, 1)
 
-                def _shingle_jaccard(text_a, text_b, k=5):
-                    """5-word shingle Jaccard — primary copy signal (Copyscape/Google approach).
-                    Returns % of shared k-word phrases between the two texts."""
-                    wa = re.findall(r'\b[a-z]{2,}\b', text_a.lower())
-                    wb = re.findall(r'\b[a-z]{2,}\b', text_b.lower())
+                def _words(text):
+                    return re.findall(r'\b[a-z]{2,}\b', text.lower())
+
+                def _jaccard_words(wa, wb, k):
                     if len(wa) < k or len(wb) < k:
                         return 0.0
                     sa = set(zip(*[wa[i:] for i in range(k)]))
                     sb = set(zip(*[wb[i:] for i in range(k)]))
                     inter = len(sa & sb)
                     union = len(sa | sb)
-                    return round(inter / union * 100, 1) if union else 0.0
+                    return inter / union if union else 0.0
+
+                def _shingle_jaccard(text_a, text_b):
+                    """Dual k=4 + k=5 shingle Jaccard. Returns % of best signal."""
+                    wa, wb = _words(text_a), _words(text_b)
+                    j5 = _jaccard_words(wa, wb, 5)
+                    j4 = _jaccard_words(wa, wb, 4)
+                    return round(max(j4 * 0.85, j5) * 100, 1)
+
+                def _paragraph_jaccard(new_text, corp_text):
+                    """Split both texts into paragraphs; return the highest paragraph-pair
+                    Jaccard. Catches partial copies where only one section is lifted."""
+                    def _paras(t):
+                        chunks = re.split(r'\n{2,}|(?<=[.!?])\s{2,}', t)
+                        return [c.strip() for c in chunks if len(c.split()) >= 25]
+                    new_paras  = _paras(new_text)
+                    corp_paras = _paras(corp_text)
+                    if not new_paras or not corp_paras:
+                        return 0.0
+                    best = 0.0
+                    for np_ in new_paras:
+                        wn = _words(np_)
+                        for cp in corp_paras:
+                            wc_ = _words(cp)
+                            j = _jaccard_words(wn, wc_, 5)
+                            if j > best:
+                                best = j
+                    return round(best * 100, 1)
 
                 def _verbatim_sentences(new_text, corp_text, min_words=8):
-                    """Count sentences ≥ min_words that appear verbatim in corp_text."""
                     corp_norm = re.sub(r'\s+', ' ', corp_text.lower())
                     count = 0
                     for sent in re.split(r'(?<=[.!?])\s+|\n', new_text):
@@ -1233,7 +1293,7 @@ with left_col:
                     return count
 
                 import numpy as np_mod
-                TOP_K = 8  # check shingles against top-8 TF-IDF candidates
+                TOP_K = 15  # check against top-15 TF-IDF candidates
 
                 if valid_new and corpus_mat.shape[0] > 0:
                     vt      = [t for _, t in valid_new]
@@ -1247,11 +1307,9 @@ with left_col:
                         if row_url in corpus_url_idx:
                             scores[corpus_url_idx[row_url]] = -1.0
 
-                        # TF-IDF best (fast coarse rank)
                         best_j  = int(scores.argmax())
                         best_sc = round(float(scores[best_j]) * 100, 1)
 
-                        # Shingle + sentence check against top-K TF-IDF candidates
                         copy_sc = 0.0
                         matched_sents = 0
                         if corpus_texts is not None:
@@ -1261,10 +1319,37 @@ with left_col:
                                 ct = corpus_texts[int(cj)]
                                 if not ct:
                                     continue
+                                # Full-text dual-gram Jaccard
                                 js = _shingle_jaccard(t, ct)
-                                if js > copy_sc:
-                                    copy_sc = js
+                                # Paragraph-level max (catches partial section copies)
+                                pj = _paragraph_jaccard(t, ct)
+                                best_pair = max(js, pj)
+                                if best_pair > copy_sc:
+                                    copy_sc = best_pair
                                     matched_sents = _verbatim_sentences(t, ct)
+
+                        # Semantic similarity boost (sentence-transformers, optional)
+                        # Runs only when embeddings are available and phrase signals are
+                        # ambiguous (copy_sc in 8–30%: could be paraphrase or false positive).
+                        if _EMBED_AVAILABLE and _EMBEDDER is not None and corpus_texts is not None:
+                            if 8.0 <= copy_sc <= 30.0:
+                                try:
+                                    import numpy as _np2
+                                    best_j_txt = corpus_texts[best_j] or ""
+                                    if best_j_txt:
+                                        t_trunc  = t[:3000]
+                                        ct_trunc = best_j_txt[:3000]
+                                        embs = _EMBEDDER.encode(
+                                            [t_trunc, ct_trunc],
+                                            normalize_embeddings=True,
+                                            show_progress_bar=False,
+                                        )
+                                        sem_sc = float(_np2.dot(embs[0], embs[1])) * 100
+                                        # Semantic score blends in at 30% weight when
+                                        # phrase signal is in the ambiguous zone.
+                                        copy_sc = round(copy_sc * 0.70 + sem_sc * 0.30, 1)
+                                except Exception:
+                                    pass
 
                         sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t),
                                                copy_sc, matched_sents)
