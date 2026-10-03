@@ -26,7 +26,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 from plag_utils import fetch_text, check_article, clear_page_cache, build_passages, normalize
-from rapidfuzz import fuzz
+import numpy as np_mod
 
 @st.cache_resource(show_spinner=False)
 def _load_embedder():
@@ -1191,22 +1191,36 @@ if True:
                 # Clear cached page text for these URLs so re-runs pick up live changes
                 clear_page_cache(new_df["url"].tolist())
 
-                # prepare new articles
+                # prepare new articles — parallel fetch for those without description
                 with st.status("📥 Preparing articles…", expanded=True) as s2:
                     prog = st.progress(0.0)
                     cur  = st.empty()
-                    new_texts, new_wc = [], []
-                    for i, row in enumerate(new_df.itertuples(), 1):
-                        cur.markdown(
-                            f'<p style="font-size:.82rem;color:#6B7280;margin:0;">'
-                            f'<b>{i}/{n_new}</b> &nbsp;·&nbsp; {row.url}</p>',
-                            unsafe_allow_html=True,
-                        )
+                    rows_list = list(new_df.itertuples())
+                    new_texts = [None] * n_new
+                    new_wc    = [0]   * n_new
+                    done_count = [0]
+
+                    def _fetch_one(args):
+                        idx, row = args
                         desc = str(row.description).strip()
                         text = _fast_strip(desc) if len(desc) > 10 else fetch_text(row.url)
-                        new_texts.append(text)
-                        new_wc.append(len(text.split()))
-                        prog.progress(i / n_new)
+                        return idx, text
+
+                    from concurrent.futures import ThreadPoolExecutor, as_completed
+                    with ThreadPoolExecutor(max_workers=12) as pool:
+                        futures = {pool.submit(_fetch_one, (i, row)): i
+                                   for i, row in enumerate(rows_list)}
+                        for fut in as_completed(futures):
+                            idx, text = fut.result()
+                            new_texts[idx] = text
+                            new_wc[idx]    = len(text.split())
+                            done_count[0] += 1
+                            prog.progress(done_count[0] / n_new)
+                            cur.markdown(
+                                f'<p style="font-size:.82rem;color:#6B7280;margin:0;">'
+                                f'<b>{done_count[0]}/{n_new}</b> articles fetched</p>',
+                                unsafe_allow_html=True,
+                            )
                     cur.empty()
                     s2.update(label=f"✅ {n_new} articles ready",
                               state="complete", expanded=False)
@@ -1243,28 +1257,19 @@ if True:
                         union = len(sa | sb)
                         return inter / union if union else 0.0
 
-                    def _shingle_jaccard(text_a, text_b):
-                        """Dual k=4 + k=5 shingle Jaccard. Returns % of best signal."""
-                        wa, wb = _words(text_a), _words(text_b)
-                        j5 = _jaccard_words(wa, wb, 5)
-                        j4 = _jaccard_words(wa, wb, 4)
-                        return round(max(j4 * 0.85, j5) * 100, 1)
-
-                    def _paragraph_jaccard(new_text, corp_text):
-                        """Split both texts into paragraphs; return the highest paragraph-pair
-                        Jaccard. Catches partial copies where only one section is lifted."""
+                    def _paragraph_jaccard(new_text, corp_word_lists_para):
+                        """Split new_text into paragraphs; return the highest paragraph-pair
+                        Jaccard against precomputed corpus paragraph word lists."""
                         def _paras(t):
                             chunks = re.split(r'\n{2,}|(?<=[.!?])\s{2,}', t)
                             return [c.strip() for c in chunks if len(c.split()) >= 25]
-                        new_paras  = _paras(new_text)
-                        corp_paras = _paras(corp_text)
-                        if not new_paras or not corp_paras:
+                        new_paras = _paras(new_text)
+                        if not new_paras or not corp_word_lists_para:
                             return 0.0
                         best = 0.0
                         for np_ in new_paras:
                             wn = _words(np_)
-                            for cp in corp_paras:
-                                wc_ = _words(cp)
+                            for wc_ in corp_word_lists_para:
                                 j = _jaccard_words(wn, wc_, 5)
                                 if j > best:
                                     best = j
@@ -1279,7 +1284,6 @@ if True:
                                 count += 1
                         return count
 
-                    import numpy as np_mod
                     TOP_K = 15  # check against top-15 TF-IDF candidates
 
                     if valid_new and corpus_mat.shape[0] > 0:
@@ -1302,14 +1306,21 @@ if True:
                             if corpus_texts is not None:
                                 k_size   = min(TOP_K, len(scores))
                                 top_idxs = np_mod.argpartition(scores, -k_size)[-k_size:]
+                                wa = _words(t)  # hoist: compute once per article not per candidate
                                 for cj in top_idxs:
                                     ct = corpus_texts[int(cj)]
                                     if not ct:
                                         continue
-                                    # Full-text dual-gram Jaccard
-                                    js = _shingle_jaccard(t, ct)
-                                    # Paragraph-level max (catches partial section copies)
-                                    pj = _paragraph_jaccard(t, ct)
+                                    wb = _words(ct)
+                                    # Full-text dual-gram Jaccard (reuse precomputed wa)
+                                    j5 = _jaccard_words(wa, wb, 5)
+                                    j4 = _jaccard_words(wa, wb, 4)
+                                    js = round(max(j4 * 0.85, j5) * 100, 1)
+                                    # Paragraph-level with precomputed corpus para word lists
+                                    corp_para_words = [_words(cp) for cp in
+                                                       re.split(r'\n{2,}|(?<=[.!?])\s{2,}', ct)
+                                                       if len(cp.split()) >= 25]
+                                    pj = _paragraph_jaccard(t, corp_para_words)
                                     best_pair = max(js, pj)
                                     if best_pair > copy_sc:
                                         copy_sc = best_pair
