@@ -193,8 +193,10 @@ button[data-testid="stSidebarCollapseButton"]::after {
 @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
 @keyframes pulse   { 0%,100%{opacity:1} 50%{opacity:.35} }
 
-/* ── Hide sidebar entirely (nav moves to header) ───────────────────────────── */
+/* ── Hide sidebar + page nav entirely ──────────────────────────────────────── */
 section[data-testid="stSidebar"] { display: none !important; }
+[data-testid="stSidebarNav"]     { display: none !important; }
+[data-testid="stMainMenuPopover"] button[kind="secondary"] { display: none !important; }
 
 /* ── Fixed top accent strip ────────────────────────────────────────────────── */
 .header-accent {
