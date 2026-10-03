@@ -332,21 +332,33 @@ div[data-testid="stButton"] > button[kind="primary"]:active {
 .panel-title { font-size: 14.5px; font-weight: 700; color: var(--navy); }
 .panel-sub   { font-size: 11.5px; color: var(--muted); margin-left: auto; font-weight: 500; }
 
-/* ── Top filter bar ─────────────────────────────────────────────────────────── */
-.filter-bar-hd {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
-    color: var(--muted); padding-bottom: 10px; margin-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-}
+/* ── Top filter accordion ────────────────────────────────────────────────────── */
 .filter-label {
     font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
-    text-transform: uppercase; color: var(--navy); margin-bottom: 6px;
+    text-transform: uppercase; color: var(--navy); margin-bottom: 8px;
     display: flex; align-items: center; gap: 5px;
 }
-.filter-sub { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
-.filter-divider { width: 1px; background: var(--border); align-self: stretch; margin: 0 4px; }
-.filter-bar-wrap { padding: 14px 16px 12px; }
+.filter-sub { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.5; }
+
+/* Style the Streamlit expander to look like a filter bar toggle */
+div[data-testid="stExpander"] {
+    border-radius: var(--radius) !important;
+    border: 1px solid var(--border) !important;
+    background: var(--surface) !important;
+    box-shadow: var(--shadow-sm) !important;
+    margin-bottom: 12px !important;
+    animation: fadeUp .3s ease both;
+}
+div[data-testid="stExpander"] summary {
+    padding: 10px 16px !important;
+    font-size: 12px !important; font-weight: 700 !important;
+    color: var(--navy) !important; letter-spacing: .01em !important;
+}
+div[data-testid="stExpander"] summary:hover { background: var(--bg) !important; border-radius: var(--radius) !important; }
+div[data-testid="stExpander"] > div[data-testid="stExpanderDetails"] {
+    padding: 4px 16px 16px !important;
+    border-top: 1px solid var(--border) !important;
+}
 
 /* Upload success state */
 .upload-ok {
@@ -911,26 +923,41 @@ st.markdown(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Top filter bar  (threshold is fixed; no user-adjustable slider)
+# Top filter bar — collapsed accordion by default
+# threshold is fixed; no user-adjustable slider
 # ─────────────────────────────────────────────────────────────────────────────
 dup_threshold = 35  # fixed Copyscape-style threshold — not user-configurable
 
-with st.container(border=True):
-    st.markdown(
-        '<div class="filter-bar-hd">'
-        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--blue)">'
-        '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>'
-        'Detection filters</div>',
-        unsafe_allow_html=True,
-    )
+# Defaults (used when accordion is collapsed and widgets haven't rendered)
+flag_similar = st.session_state.get("flag_similar_chk", False)
+run_web      = st.session_state.get("run_web_chk", False)
+top_n        = 200
+n_passages, web_thresh, own_domain, excl_domains = 8, 85, "kollegeapply.com", "wikipedia.org\nyoutube.com"
 
-    fc1, _d1, fc2, _d2, fc3, _d3, fc4 = st.columns([5, 0.05, 5, 0.05, 4, 0.05, 4])
+_engine_chip = (
+    '<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;'
+    'background:var(--green-bg);border:1px solid var(--green-border);'
+    'border-radius:99px;font-size:10.5px;font-weight:600;color:var(--green-text);">'
+    '<span style="width:5px;height:5px;border-radius:50%;background:var(--green);'
+    'animation:pulse 1.8s ease infinite;"></span>Semantic on</span>'
+    if _EMBED_AVAILABLE else
+    '<span style="display:inline-flex;align-items:center;gap:5px;padding:2px 9px;'
+    'background:var(--amber-bg);border:1px solid var(--amber-border);'
+    'border-radius:99px;font-size:10.5px;font-weight:600;color:var(--amber-text);">'
+    '<span style="width:5px;height:5px;border-radius:50%;background:var(--amber);"></span>Phrase only</span>'
+)
+
+with st.expander(
+    "🔽  Detection filters — Similar topic · Web verification · Max results",
+    expanded=False,
+):
+    fc1, fc2, fc3, fc4 = st.columns([4, 4, 3, 3], gap="large")
 
     with fc1:
         st.markdown(
             '<div class="filter-label">'
             '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
-            'Similar topic</div>',
+            '&nbsp;Similar topic</div>',
             unsafe_allow_html=True,
         )
         flag_similar = st.checkbox("Flag similar topics", value=False, key="flag_similar_chk")
@@ -939,14 +966,11 @@ with st.container(border=True):
             unsafe_allow_html=True,
         )
 
-    with _d1:
-        st.markdown('<div class="filter-divider"></div>', unsafe_allow_html=True)
-
     with fc2:
         st.markdown(
             '<div class="filter-label">'
             '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
-            'Web verification</div>',
+            '&nbsp;Web verification</div>',
             unsafe_allow_html=True,
         )
         run_web = st.checkbox("Check against open web", value=False, key="run_web_chk")
@@ -954,15 +978,18 @@ with st.container(border=True):
             '<div class="filter-sub">Compare against publicly accessible web pages.</div>',
             unsafe_allow_html=True,
         )
-
-    with _d2:
-        st.markdown('<div class="filter-divider"></div>', unsafe_allow_html=True)
+        if run_web:
+            st.markdown('<div class="filter-sub" style="margin-top:10px;font-weight:600;color:var(--navy);">Options</div>', unsafe_allow_html=True)
+            n_passages   = st.slider("Passages per article", 4, 20, 8)
+            web_thresh   = st.slider("Match threshold", 70, 100, 85, format="%d%%")
+            own_domain   = st.text_input("Your domain (excluded)", "kollegeapply.com")
+            excl_domains = st.text_area("Other excluded domains", "wikipedia.org\nyoutube.com", height=60)
 
     with fc3:
         st.markdown(
             '<div class="filter-label">'
             '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
-            'Max results</div>',
+            '&nbsp;Max results</div>',
             unsafe_allow_html=True,
         )
         top_n = st.number_input("Max results shown", 10, 5000, 200, label_visibility="collapsed")
@@ -971,45 +998,9 @@ with st.container(border=True):
             unsafe_allow_html=True,
         )
 
-    with _d3:
-        st.markdown('<div class="filter-divider"></div>', unsafe_allow_html=True)
-
     with fc4:
-        st.markdown('<div class="filter-label">Engine</div>', unsafe_allow_html=True)
-        if _EMBED_AVAILABLE:
-            st.markdown(
-                '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;'
-                'background:var(--green-bg);border:1px solid var(--green-border);'
-                'border-radius:var(--radius-sm);font-size:11px;color:var(--green-text);">'
-                '<span style="width:6px;height:6px;border-radius:50%;background:var(--green);'
-                'flex-shrink:0;animation:pulse 1.8s ease infinite;"></span>'
-                '<strong>Semantic on</strong></div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown(
-                '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;'
-                'background:var(--amber-bg);border:1px solid var(--amber-border);'
-                'border-radius:var(--radius-sm);font-size:11px;color:var(--amber-text);">'
-                '<span style="width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0;"></span>'
-                'Phrase only</div>',
-                unsafe_allow_html=True,
-            )
-
-# Web check options (shown inline below the filter bar when enabled)
-if run_web:
-    with st.container(border=True):
-        st.markdown(
-            '<div class="filter-label" style="margin-bottom:10px;">'
-            '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
-            'Web check options</div>',
-            unsafe_allow_html=True,
-        )
-        wc1, wc2, wc3, wc4 = st.columns([2, 2, 3, 3])
-        n_passages   = wc1.slider("Passages per article", 4, 20, 8)
-        web_thresh   = wc2.slider("Match threshold", 70, 100, 85, format="%d%%")
-        own_domain   = wc3.text_input("Your domain (excluded)", "kollegeapply.com")
-        excl_domains = wc4.text_area("Other excluded domains", "wikipedia.org\nyoutube.com", height=68)
+        st.markdown('<div class="filter-label">Engine status</div>', unsafe_allow_html=True)
+        st.markdown(_engine_chip, unsafe_allow_html=True)
 
 similar_topic_threshold = 80 if flag_similar else None
 
