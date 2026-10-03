@@ -637,17 +637,19 @@ def smart_col(df, candidates):
             return lower[c]
     return None
 
-def verdict_for(copy_score, topic_score, threshold):
+def verdict_for(copy_score, topic_score, threshold, similar_topic_threshold=None):
     """
-    copy_score  = 5-word shingle Jaccard % (primary — measures actual copied text)
-    topic_score = TF-IDF cosine %          (secondary — measures topic overlap)
-    threshold   = user-set copy threshold
+    copy_score              = 5-word shingle Jaccard % (primary)
+    topic_score             = TF-IDF cosine %          (secondary)
+    threshold               = user-set copy threshold
+    similar_topic_threshold = if set, fire "Similar topic" when topic_score >= this value;
+                              None means the "Similar topic" verdict is disabled (default)
     """
     if copy_score >= threshold:
         return "danger", "Duplicate"
     if copy_score >= max(threshold * 0.4, 12):
         return "warn", "High overlap"
-    if topic_score >= 65:
+    if similar_topic_threshold is not None and topic_score >= similar_topic_threshold:
         return "info", "Similar topic"
     return "ok", "Unique"
 
@@ -895,6 +897,25 @@ with right_col:
             f'</div>',
             unsafe_allow_html=True,
         )
+
+        st.divider()
+
+        # Similar topic flagging
+        st.markdown('<span class="settings-label">🔍 Similar topic detection</span>', unsafe_allow_html=True)
+        flag_similar = st.checkbox("Flag similar topics", value=False, key="flag_similar_chk")
+        st.markdown(
+            '<span class="settings-sub">Off by default — education articles naturally share vocabulary. '
+            'Enable only if you want to surface same-topic coverage even when no text is copied.</span>',
+            unsafe_allow_html=True,
+        )
+        similar_topic_threshold = None
+        if flag_similar:
+            similar_topic_threshold = st.slider(
+                "Topic overlap threshold", 65, 95, 80, format="%d%%",
+                key="sim_topic_thr",
+                help="Topic match (TF-IDF) must reach this % to trigger 'Similar topic'. "
+                     "80% = very closely related content. 65% = any articles on the same subject.",
+            )
 
         st.divider()
 
@@ -1173,7 +1194,7 @@ with left_col:
             ):
                 corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
                 wr       = web_res.get(row.url, {})
-                cls, vlabel = verdict_for(copy_sc, tfidf_sc, dup_threshold)[:2]
+                cls, vlabel = verdict_for(copy_sc, tfidf_sc, dup_threshold, similar_topic_threshold)[:2]
                 final_rows.append({
                     "url":                    row.url,
                     "word_count":             wc,
@@ -1264,6 +1285,13 @@ if results:
         )
 
     # ── Verdict guide ─────────────────────────────────────────────────────────
+    _sim_tile = (
+        '<div class="vg-item info">'
+        '  <div class="vg-head"><div class="vg-dot info"></div><span class="vg-title">Similar topic</span></div>'
+        '  <div class="vg-action">📝 Review differentiation</div>'
+        '  <div class="vg-desc">Same subject as a published article, but independently written. OK to publish — consider adding a unique angle.</div>'
+        '</div>'
+    ) if flag_similar else ""
     st.markdown(
         '<div class="vguide">'
         '<div class="vg-item ok">'
@@ -1271,11 +1299,7 @@ if results:
         '  <div class="vg-action">✅ Publish</div>'
         '  <div class="vg-desc">No phrase overlap with existing content. Original writing — safe to go live.</div>'
         '</div>'
-        '<div class="vg-item info">'
-        '  <div class="vg-head"><div class="vg-dot info"></div><span class="vg-title">Similar topic</span></div>'
-        '  <div class="vg-action">📝 Review differentiation</div>'
-        '  <div class="vg-desc">Same subject as a published article, but independently written. OK to publish — consider adding a unique angle.</div>'
-        '</div>'
+        + _sim_tile +
         '<div class="vg-item warn">'
         '  <div class="vg-head"><div class="vg-dot warn"></div><span class="vg-title">High overlap</span></div>'
         '  <div class="vg-action">✏️ Rewrite before publishing</div>'
@@ -1334,7 +1358,7 @@ if results:
                 topic_sc = r.get("topic_overlap_%", 0.0)
                 msents   = r.get("matched_sentences", 0)
                 oov      = r.get("new_vocab_%", 0.0)
-                cls, vlabel = verdict_for(copy_sc, topic_sc, dup_threshold)[:2]
+                cls, vlabel = verdict_for(copy_sc, topic_sc, dup_threshold, similar_topic_threshold)[:2]
                 action_txt, action_cls = _ACTION[cls]
                 badge_lbl  = _BADGE[cls]
                 url_e   = html_module.escape(r["url"])
