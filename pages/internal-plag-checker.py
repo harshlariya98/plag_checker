@@ -955,9 +955,7 @@ st.markdown(
     f'    <span class="nav-tab {_tab_res_cls}">{_dot_res}Results</span>'
     f'  </nav>'
     f'  <div class="app-header-right">'
-    f'    <button class="hdr-guide-btn" onclick="(function(){{var bs=document.querySelectorAll(\'button\');for(var i=0;i<bs.length;i++){{if(bs[i].getAttribute(\'data-guide-trigger\')==\'1\'){{bs[i].click();break;}}}}}})()">'
-    f'      ❓ Guide'
-    f'    </button>'
+    f'    <button class="hdr-guide-btn" onclick="var u=new URL(window.location);u.searchParams.set(\'guide\',\'1\');window.location.href=u.toString();">❓ Guide</button>'
     f'    {_corpus_badge}'
     f'  </div>'
     f'</div>',
@@ -1086,32 +1084,10 @@ def _show_guide():
                 st.markdown(line)
         st.write("")
 
-# Hidden Streamlit trigger for the guide dialog — clicked by the header HTML button via JS
-if st.button("​_guide_​", key="_guide_btn"):
+# Open guide dialog when ?guide=1 query param is set (triggered by header button)
+if st.query_params.get("guide") == "1":
+    st.query_params.clear()
     _show_guide()
-# Tag the trigger button by its unique zero-width-space label, then hide its container
-st.markdown("""
-<script>
-(function(){
-    function tag(){
-        var bs=document.querySelectorAll('button');
-        for(var i=0;i<bs.length;i++){
-            if(bs[i].textContent.indexOf('​_guide_​')!==-1){
-                bs[i].setAttribute('data-guide-trigger','1');
-                var w=bs[i].closest('[data-testid="stButton"]')||bs[i].parentElement;
-                if(w) w.style.cssText='display:none!important;position:absolute;left:-9999px';
-                return true;
-            }
-        }
-        return false;
-    }
-    if(!tag()){
-        var o=new MutationObserver(function(){if(tag())o.disconnect();});
-        o.observe(document.body,{childList:true,subtree:true});
-    }
-})();
-</script>
-""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Corpus check + load
