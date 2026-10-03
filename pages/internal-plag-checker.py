@@ -1104,8 +1104,15 @@ def _build_pdf():
 
 @st.dialog("📖  How to use the Plag Checker", width="large")
 def _show_guide():
+    st.markdown("""
+    <style>
+    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {gap: 0.35rem !important;}
+    div[data-testid="stDialog"] [data-testid="stMarkdown"] p {margin: 0 0 0.15rem 0 !important;}
+    div[data-testid="stDialog"] hr {margin: 0.4rem 0 !important;}
+    div[data-testid="stDialog"] [data-testid="stDownloadButton"] {margin: 0 !important;}
+    </style>""", unsafe_allow_html=True)
     pdf_bytes = _build_pdf()
-    _, _pdf_col = st.columns([1, 0.28])
+    _, _pdf_col = st.columns([1, 0.22])
     with _pdf_col:
         st.download_button(
             "⬇️  Download as PDF",
@@ -1121,7 +1128,6 @@ def _show_guide():
         for line in body.split("\n"):
             if line.strip():
                 st.markdown(line)
-        st.write("")
 
 # Guide button rendered here (after _show_guide is defined) — CSS floats it into header
 if st.button("❓ Guide", key="guide_btn"):
