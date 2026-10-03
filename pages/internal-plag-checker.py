@@ -745,11 +745,11 @@ def normalise_new(df):
         url_col = _detect_url_col(df)
     if not desc_col and url_col:
         desc_col = _detect_desc_col(df, url_col)
-    if not url_col:
-        return None, f"No URL column found. Columns: {list(df.columns)}"
-    rename = {url_col: "url"}
+    rename = {}
+    if url_col:  rename[url_col]  = "url"
     if desc_col: rename[desc_col] = "description"
     df = df.rename(columns=rename)
+    if "url"         not in df.columns: df["url"]         = ""
     if "description" not in df.columns: df["description"] = ""
     return df[["url","description"] +
                [c for c in df.columns if c not in ("url","description")]].copy(), None
@@ -1085,15 +1085,7 @@ if True:
                     st.error(f"Couldn't read that CSV: {e}")
                     raw_new = None
                 if raw_new is not None:
-                    df2, err2 = normalise_new(raw_new)
-                    if err2:
-                        alert_strip(
-                            f"Could not find a URL column. "
-                            f"Make sure your CSV has a column whose values start with <code>http</code>. "
-                            f"Columns found: {', '.join(f'<code>{c}</code>' for c in raw_new.columns)}",
-                            kind="danger", icon="❌",
-                        )
-                        df2 = None
+                    df2, _ = normalise_new(raw_new)
                     new_df = df2
                     if new_df is not None:
                         new_df["url"]         = new_df["url"].astype(str).str.strip()
