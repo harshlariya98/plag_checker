@@ -853,8 +853,8 @@ def _ensure_corpus_index():
 
         CHUNK = 10_000
         url_chunks, text_chunks = [], []
-        with open(CORPUS_PATH, "rb") as f:
-            total_rows = sum(1 for _ in f) - 1
+        total_bytes = os.path.getsize(CORPUS_PATH)
+        bytes_done  = 0
 
         reader    = pd.read_csv(CORPUS_PATH,
                                 usecols=lambda c: c in ["url","description"],
@@ -867,13 +867,14 @@ def _ensure_corpus_index():
                                              pd.Series([""] * len(chunk))).astype(str)
             url_chunks.append(chunk["url"])
             text_chunks.append(_vectorized_strip(chunk["description"]))
-            rows_done += len(chunk)
-            frac    = min(rows_done / total_rows, 1.0)
+            rows_done  += len(chunk)
+            bytes_done += chunk.memory_usage(deep=True).sum()
+            frac    = min(bytes_done / max(total_bytes, 1), 0.99)
             elapsed = time.time() - t0
             eta     = (elapsed / frac * (1 - frac)) if frac > 0.01 else 0
             prog1.progress(frac)
             info1.markdown(
-                f'<p class="eta-label">{rows_done:,} / {total_rows:,} rows'
+                f'<p class="eta-label">{rows_done:,} rows read'
                 f'&nbsp;·&nbsp; {_fmt_eta(eta)}</p>',
                 unsafe_allow_html=True,
             )
