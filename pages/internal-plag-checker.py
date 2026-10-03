@@ -154,7 +154,7 @@ html, body, [class*="css"] {
     background: var(--bg) !important;
     color: var(--text) !important;
 }
-.block-container { padding: 4rem 2rem 4rem !important; max-width: 1440px !important; }
+.block-container { padding: 4.5rem 2rem 4rem !important; max-width: 1440px !important; }
 /* Collapse any flow-space left by the fixed header's markdown wrapper */
 div[data-testid="stMarkdown"]:has(.app-header) {
     height: 0 !important; overflow: visible !important;
@@ -198,71 +198,91 @@ section[data-testid="stSidebar"] { display: none !important; }
 
 /* ── Fixed top accent strip ────────────────────────────────────────────────── */
 .header-accent {
-    position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 1000000;
-    background: linear-gradient(90deg, var(--coral) 0%, var(--blue) 55%, var(--purple) 100%);
+    position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 1000000;
+    background: linear-gradient(90deg, var(--coral) 0%, var(--blue) 50%, var(--purple) 100%);
 }
 
 /* ── Fixed app header ──────────────────────────────────────────────────────── */
 .app-header {
-    position: fixed; top: 3px; left: 0; right: 0; height: 53px; z-index: 999999;
-    background: rgba(255,255,255,0.97);
-    backdrop-filter: blur(12px);
+    position: fixed; top: 4px; left: 0; right: 0; height: 54px; z-index: 999999;
+    background: rgba(255,255,255,0.98);
+    backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
-    box-shadow: 0 1px 10px rgba(0,0,0,.07);
+    box-shadow: 0 2px 16px rgba(22,50,79,.06);
     display: flex; align-items: center;
-    padding: 0 24px; gap: 0;
-}
-.app-header-left  { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.app-header-right { flex-shrink: 0; }
-.app-logo    { width: 24px; height: 24px; object-fit: contain; flex-shrink: 0; display: block; }
-.app-logo-fb { width: 24px; height: 24px; border-radius: 6px; background: var(--navy);
-               display: flex; align-items: center; justify-content: center; font-size: .8rem; }
-.app-brand   { font-size: 13.5px; font-weight: 700; color: var(--navy); }
-.app-sep     { width: 1px; height: 14px; background: var(--border); flex-shrink: 0; }
-.app-page    { font-size: 14px; font-weight: 700; color: var(--navy); }
-.app-badge   {
-    font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase;
-    color: var(--blue); background: var(--blue-bg);
-    border: 1px solid var(--blue-border);
-    padding: 2px 8px; border-radius: 4px;
+    padding: 0 28px; gap: 0;
 }
 
-/* ── Header nav pills ──────────────────────────────────────────────────────── */
+/* ── Left: brand block ─────────────────────────────────────────────────────── */
+.app-header-left { display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+.app-logo    { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; display: block; }
+.app-logo-fb {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--navy) 0%, #2a5080 100%);
+    display: flex; align-items: center; justify-content: center; font-size: .85rem;
+    box-shadow: 0 2px 6px rgba(22,50,79,.25);
+}
+.app-brand-block { display: flex; flex-direction: column; gap: 0; }
+.app-brand {
+    font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    color: var(--muted); line-height: 1;
+}
+.app-page  {
+    font-size: 14px; font-weight: 800; color: var(--navy); line-height: 1.2;
+    letter-spacing: -.3px;
+}
+.app-sep   { width: 1px; height: 22px; background: var(--border); flex-shrink: 0; margin: 0 4px; }
+.app-badge {
+    font-size: 9.5px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase;
+    color: var(--coral); background: rgba(244,112,98,.08);
+    border: 1px solid rgba(244,112,98,.22);
+    padding: 3px 8px; border-radius: 5px; align-self: center;
+}
+
+/* ── Center: nav tabs ──────────────────────────────────────────────────────── */
 .app-nav {
-    display: flex; align-items: center; justify-content: center;
-    gap: 4px; flex: 1; padding: 0 24px;
+    display: flex; align-items: stretch; justify-content: center;
+    gap: 0; flex: 1; padding: 0 32px; height: 100%;
 }
-.nav-pill {
-    display: inline-flex; align-items: center; gap: 5px;
-    padding: 5px 14px; border-radius: 99px;
+.nav-tab {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 0 18px; height: 100%;
     font-size: 12.5px; font-weight: 600;
-    color: var(--muted); background: transparent;
-    border: 1px solid transparent;
-    transition: all .15s; cursor: default; white-space: nowrap;
-    user-select: none;
+    color: var(--muted);
+    border-bottom: 2.5px solid transparent;
+    transition: color .15s, border-color .15s;
+    cursor: default; white-space: nowrap; user-select: none;
+    position: relative;
 }
-.nav-pill:hover { color: var(--navy); background: var(--bg); border-color: var(--border); }
-.nav-pill.pill-blue   { color: var(--blue);   background: var(--blue-bg);   border-color: var(--blue-border); }
-.nav-pill.pill-green  { color: var(--green);  background: var(--green-bg);  border-color: var(--green-border); }
-.nav-pill.pill-coral  { color: var(--coral);  background: rgba(244,112,98,.08); border-color: rgba(244,112,98,.25); }
-.nav-pill.pill-purple { color: var(--purple); background: var(--purple-bg); border-color: var(--purple-border); }
-.nav-dot {
+.nav-tab:hover { color: var(--navy); }
+.nav-tab.active { color: var(--navy); border-bottom-color: var(--blue); }
+.nav-tab.active-green  { color: var(--green);  border-bottom-color: var(--green);  }
+.nav-tab.active-purple { color: var(--purple); border-bottom-color: var(--purple); }
+.nav-tab-dot {
     width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
     animation: pulse 1.8s ease infinite;
 }
 
-/* ── Corpus chip ───────────────────────────────────────────────────────────── */
+/* ── Right: corpus status ──────────────────────────────────────────────────── */
+.app-header-right { flex-shrink: 0; }
 .corpus-chip {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 12.5px; color: var(--muted);
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 99px; padding: 4px 12px 4px 8px;
+    display: inline-flex; align-items: center; gap: 7px;
+    font-size: 12px; font-weight: 500; color: var(--muted);
+    background: var(--light); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 12px 5px 10px;
     box-shadow: var(--shadow-xs);
 }
-.corpus-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); flex-shrink: 0; animation: pulse 1.8s ease infinite; }
+.corpus-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: var(--green);
+    flex-shrink: 0; animation: pulse 1.8s ease infinite;
+}
 .corpus-chip strong { color: var(--navy); font-weight: 700; }
+.corpus-count { font-size: 12.5px; font-weight: 700; color: var(--blue); }
 .corpus-chip.err .corpus-dot { background: var(--red); animation: none; }
 .corpus-chip.err { color: var(--red-text); }
+
+/* Backward-compat aliases used elsewhere */
+.nav-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; animation: pulse 1.8s ease infinite; }
 
 /* ── Page intro ────────────────────────────────────────────────────────────── */
 .page-intro { margin: 0 0 20px !important; animation: fadeUp .3s ease both; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
@@ -850,7 +870,7 @@ _n_pre = len(st.session_state.get("corpus_urls", []))
 _corpus_badge = (
     f'<div class="corpus-chip">'
     f'<span class="corpus-dot"></span>'
-    f'Corpus ready &nbsp;·&nbsp; <strong>{_n_pre:,} articles indexed</strong>'
+    f'<span>Corpus &nbsp;<span class="corpus-count">{_n_pre:,}</span>&nbsp; articles</span>'
     f'</div>'
     if _n_pre > 0 else
     '<div class="corpus-chip err"><span class="corpus-dot"></span>Loading corpus…</div>'
@@ -859,24 +879,26 @@ _hlogo = (f'<img src="{LOGO_URI}" class="app-logo" alt="KollegeApply">'
           if LOGO_URI else '<div class="app-logo-fb">🎓</div>')
 _has_results = bool(st.session_state.get("results"))
 _web_active  = st.session_state.get("run_web_chk", False)
-_pill_web    = "pill-green" if _web_active else ""
-_pill_res    = "pill-purple" if _has_results else ""
-_dot_res     = '<span class="nav-dot" style="background:var(--purple)"></span>' if _has_results else ""
+_tab_web_cls    = "active-green"  if _web_active  else ""
+_tab_res_cls    = "active-purple" if _has_results else ""
+_dot_res     = f'<span class="nav-tab-dot" style="background:var(--purple)"></span>' if _has_results else ""
 st.markdown(
     f'<div class="header-accent"></div>'
     f'<div class="app-header">'
     f'  <div class="app-header-left">'
     f'    {_hlogo}'
-    f'    <span class="app-brand">KollegeApply</span>'
+    f'    <div class="app-brand-block">'
+    f'      <span class="app-brand">KollegeApply</span>'
+    f'      <span class="app-page">Plag Checker</span>'
+    f'    </div>'
     f'    <span class="app-sep"></span>'
-    f'    <span class="app-page">Plag Checker</span>'
-    f'    <span class="app-badge">INTERNAL</span>'
+    f'    <span class="app-badge">Internal</span>'
     f'  </div>'
     f'  <nav class="app-nav">'
-    f'    <span class="nav-pill pill-blue">'
-    f'      <span class="nav-dot" style="background:var(--blue)"></span>🔍 Detection</span>'
-    f'    <span class="nav-pill {_pill_web}">🌐 Web Check</span>'
-    f'    <span class="nav-pill {_pill_res}">{_dot_res}📊 Results</span>'
+    f'    <span class="nav-tab active">'
+    f'      <span class="nav-tab-dot" style="background:var(--blue)"></span>Detection</span>'
+    f'    <span class="nav-tab {_tab_web_cls}">Web Check</span>'
+    f'    <span class="nav-tab {_tab_res_cls}">{_dot_res}Results</span>'
     f'  </nav>'
     f'  <div class="app-header-right">{_corpus_badge}</div>'
     f'</div>',
