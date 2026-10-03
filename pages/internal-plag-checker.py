@@ -821,6 +821,10 @@ def _save_to_disk(key, vec, mat, urls, texts=None):
     if texts is not None:
         joblib.dump(texts, os.path.join(CACHE_DIR, f"{key}.texts.pkl"))
 
+# Pre-warm the corpus index in the background as soon as the server starts.
+# By the time the first user opens the page, the data is already in memory.
+threading.Thread(target=_get_corpus_index, daemon=True).start()
+
 
 def _ensure_corpus_index():
     if "corpus_urls" in st.session_state:
