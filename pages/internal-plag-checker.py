@@ -743,7 +743,7 @@ def normalise_new(df):
     # 2. Content-based fallback
     if not url_col:
         url_col = _detect_url_col(df)
-    if not desc_col and url_col:
+    if not desc_col:
         desc_col = _detect_desc_col(df, url_col)
     rename = {}
     if url_col:  rename[url_col]  = "url"
@@ -752,7 +752,7 @@ def normalise_new(df):
     if "url"         not in df.columns: df["url"]         = ""
     if "description" not in df.columns: df["description"] = ""
     return df[["url","description"] +
-               [c for c in df.columns if c not in ("url","description")]].copy(), None
+               [c for c in df.columns if c not in ("url","description")]].copy(), bool(url_col)
 
 def verdict_for(copy_score, topic_score, threshold, similar_topic_threshold=None):
     """
@@ -769,19 +769,6 @@ def verdict_for(copy_score, topic_score, threshold, similar_topic_threshold=None
     if similar_topic_threshold is not None and topic_score >= similar_topic_threshold:
         return "info", "Similar topic"
     return "ok", "Unique"
-
-def normalise_new(df):
-    url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
-    desc_col = smart_col(df, ["description","content","article","body","html",
-                               "article_html","text","article_body"])
-    if not url_col:
-        return None, f"No URL column found. Columns: {list(df.columns)}"
-    rename = {url_col: "url"}
-    if desc_col: rename[desc_col] = "description"
-    df = df.rename(columns=rename)
-    if "description" not in df.columns: df["description"] = ""
-    return df[["url","description"] +
-               [c for c in df.columns if c not in ("url","description")]].copy(), None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -1085,19 +1072,31 @@ if True:
                     st.error(f"Couldn't read that CSV: {e}")
                     raw_new = None
                 if raw_new is not None:
-                    df2, _ = normalise_new(raw_new)
+                    try:
+                        df2, url_detected = normalise_new(raw_new)
+                    except Exception as e:
+                        st.error(f"Column mapping failed: {e}")
+                        df2, url_detected = None, False
                     new_df = df2
                     if new_df is not None:
                         new_df["url"]         = new_df["url"].astype(str).str.strip()
                         new_df["description"] = new_df["description"].astype(str).fillna("")
-                        # Drop rows with null/empty/nan URLs
-                        before = len(new_df)
-                        new_df = new_df[
-                            new_df["url"].notna() &
-                            (new_df["url"].str.strip() != "") &
-                            (new_df["url"].str.lower() != "nan")
-                        ].reset_index(drop=True)
-                        dropped = before - len(new_df)
+                        # Drop rows with null/empty/nan URLs only when a URL column was found
+                        if url_detected:
+                            before = len(new_df)
+                            new_df = new_df[
+                                new_df["url"].notna() &
+                                (new_df["url"].str.strip() != "") &
+                                (new_df["url"].str.lower() != "nan")
+                            ].reset_index(drop=True)
+                            dropped = before - len(new_df)
+                        else:
+                            dropped = 0
+                            st.info(
+                                "⚠️ URL column not auto-detected. "
+                                f"Columns in your CSV: {', '.join(f'`{c}`' for c in raw_new.columns[:8])}. "
+                                "Rename the URL column to **url** for best results."
+                            )
                         has_desc = int((new_df["description"].str.strip().str.len() > 10).sum())
                         no_desc  = len(new_df) - has_desc
                         pct_ready = int(has_desc / max(len(new_df), 1) * 100)
