@@ -161,7 +161,7 @@ html, body, [class*="css"] {
     background: var(--bg) !important;
     color: var(--text) !important;
 }
-.block-container { padding: 72px 2rem 4rem !important; max-width: 1440px !important; }
+.block-container { padding: 64px 2rem 4rem !important; max-width: 1440px !important; }
 /* Collapse any flow-space left by the fixed header's markdown wrapper */
 div[data-testid="stMarkdown"]:has(.app-header) {
     height: 0 !important; overflow: visible !important;
@@ -923,14 +923,7 @@ def _ensure_corpus_index():
 # ─────────────────────────────────────────────────────────────────────────────
 # Application header
 # ─────────────────────────────────────────────────────────────────────────────
-_GUIDE_ONCLICK = (
-    "(function(){"
-    "var u=new URL(window.location);"
-    "u.searchParams.set('guide','1');"
-    "window.history.pushState({},'',u.toString());"
-    "window.dispatchEvent(new PopStateEvent('popstate',{state:{}}));"
-    "})()"
-)
+_GUIDE_ONCLICK = "window.location.search='?guide=1'"
 _n_pre = len(st.session_state.get("corpus_urls", []))
 _corpus_badge = (
     f'<div class="corpus-chip">'
@@ -1096,9 +1089,15 @@ def _show_guide():
         st.write("")
 
 # Open guide dialog when ?guide=1 query param is set (triggered by header button)
-if st.query_params.get("guide") == "1":
-    st.query_params.clear()
-    _show_guide()
+if "guide" in st.query_params:
+    if not st.session_state.get("_guide_opened"):
+        # First run with the param: open the dialog
+        st.session_state["_guide_opened"] = True
+        _show_guide()
+    else:
+        # Second run (after dialog close): clean up param and flag
+        st.session_state.pop("_guide_opened", None)
+        st.query_params.clear()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Corpus check + load
