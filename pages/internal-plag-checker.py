@@ -332,43 +332,21 @@ div[data-testid="stButton"] > button[kind="primary"]:active {
 .panel-title { font-size: 14.5px; font-weight: 700; color: var(--navy); }
 .panel-sub   { font-size: 11.5px; color: var(--muted); margin-left: auto; font-weight: 500; }
 
-/* ── Settings panel ────────────────────────────────────────────────────────── */
-.settings-hd {
+/* ── Top filter bar ─────────────────────────────────────────────────────────── */
+.filter-bar-hd {
     display: flex; align-items: center; gap: 8px;
-    font-size: 14px; font-weight: 800; color: var(--navy);
-    padding-bottom: 12px; margin-bottom: 4px;
-    border-bottom: 1px solid var(--border);
-    letter-spacing: -.2px;
-}
-.settings-block {
-    padding-bottom: 14px; margin-bottom: 14px;
+    font-size: 11px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--muted); padding-bottom: 10px; margin-bottom: 12px;
     border-bottom: 1px solid var(--border);
 }
-.settings-block:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
-.settings-label {
-    display: flex; align-items: center; gap: 6px;
-    font-size: 11px; font-weight: 700; letter-spacing: .07em;
-    text-transform: uppercase; color: var(--navy); margin-bottom: 8px;
+.filter-label {
+    font-size: 10.5px; font-weight: 700; letter-spacing: .07em;
+    text-transform: uppercase; color: var(--navy); margin-bottom: 6px;
+    display: flex; align-items: center; gap: 5px;
 }
-.settings-sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.55; }
-
-/* Settings section group */
-.stDivider { margin: 10px 0 !important; }
-div[data-testid="stSlider"] > div > div > div[data-testid="stThumbValue"] {
-    font-size: 11px !important; font-weight: 700 !important;
-    background: var(--navy) !important; color: #fff !important;
-    border-radius: 4px !important; padding: 2px 6px !important;
-}
-
-/* Threshold colour bar */
-.thr-bar { display: flex; height: 6px; border-radius: 99px; overflow: hidden; margin: 10px 0 6px; box-shadow: inset 0 1px 2px rgba(0,0,0,.08); }
-.thr-ok   { background: var(--green); }
-.thr-warn { background: var(--amber); }
-.thr-dup  { background: var(--red);   }
-.thr-labels { display: flex; font-size: 10.5px; color: var(--muted); font-weight: 600; }
-.thr-labels span { display: flex; align-items: center; gap: 3px; }
-.thr-labels span:last-child { margin-left: auto; }
-.tld { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.filter-sub { font-size: 11px; color: var(--muted); margin-top: 3px; line-height: 1.45; }
+.filter-divider { width: 1px; background: var(--border); align-self: stretch; margin: 0 4px; }
+.filter-bar-wrap { padding: 14px 16px 12px; }
 
 /* Upload success state */
 .upload-ok {
@@ -933,137 +911,110 @@ st.markdown(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Two-column workspace
+# Top filter bar  (threshold is fixed; no user-adjustable slider)
 # ─────────────────────────────────────────────────────────────────────────────
-left_col, right_col = st.columns([7, 3], gap="large")
+dup_threshold = 35  # fixed Copyscape-style threshold — not user-configurable
 
-# ── Right column: settings panel ─────────────────────────────────────────────
-with right_col:
-    with st.container(border=True):
-        st.markdown(
-            '<div class="settings-hd">'
-            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--blue)">'
-            '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
-            '</svg>'
-            'Detection settings</div>',
-            unsafe_allow_html=True,
-        )
+with st.container(border=True):
+    st.markdown(
+        '<div class="filter-bar-hd">'
+        '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" style="color:var(--blue)">'
+        '<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>'
+        'Detection filters</div>',
+        unsafe_allow_html=True,
+    )
 
-        # ── Copy score threshold ──────────────────────────────────────────────
-        st.markdown(
-            '<div class="settings-label">'
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
-            'Copy score threshold</div>',
-            unsafe_allow_html=True,
-        )
-        dup_threshold = st.slider(
-            "Copy score threshold", 10, 80, 35, format="%d%%",
-            label_visibility="collapsed",
-            help="Articles with copy score ≥ this are flagged as duplicates. "
-                 "Copy score = 5-word phrase Jaccard (Copyscape-style). "
-                 "35% means ~35% of 5-word phrases are shared — strong signal of copying.",
-        )
-        overlap_w = max(1, dup_threshold - 12)
-        dup_w     = max(1, 80 - dup_threshold)
-        st.markdown(
-            f'<div class="thr-bar">'
-            f'<div class="thr-ok" style="flex:12"></div>'
-            f'<div class="thr-warn" style="flex:{overlap_w}"></div>'
-            f'<div class="thr-dup" style="flex:{dup_w}"></div>'
-            f'</div>'
-            f'<div class="thr-labels">'
-            f'<span><span class="tld" style="background:var(--green)"></span>&lt;12% Original</span>'
-            f'<span><span class="tld" style="background:var(--red)"></span>≥{dup_threshold}% Duplicate</span>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
+    fc1, _d1, fc2, _d2, fc3, _d3, fc4 = st.columns([5, 0.05, 5, 0.05, 4, 0.05, 4])
 
-        st.divider()
-
-        # ── Similar topic detection ───────────────────────────────────────────
+    with fc1:
         st.markdown(
-            '<div class="settings-label">'
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
-            'Similar topic detection</div>',
+            '<div class="filter-label">'
+            '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+            'Similar topic</div>',
             unsafe_allow_html=True,
         )
         flag_similar = st.checkbox("Flag similar topics", value=False, key="flag_similar_chk")
         st.markdown(
-            '<span class="settings-sub">Off by default — education articles naturally share vocabulary. '
-            'Enable only if you want to surface same-topic coverage even when no text is copied.</span>',
+            '<div class="filter-sub">Off by default — education articles naturally share vocabulary.</div>',
             unsafe_allow_html=True,
         )
-        similar_topic_threshold = None
-        if flag_similar:
-            similar_topic_threshold = st.slider(
-                "Topic overlap threshold", 65, 95, 80, format="%d%%",
-                key="sim_topic_thr",
-                help="Topic match (TF-IDF) must reach this % to trigger 'Similar topic'. "
-                     "80% = very closely related content. 65% = any articles on the same subject.",
-            )
 
-        st.divider()
+    with _d1:
+        st.markdown('<div class="filter-divider"></div>', unsafe_allow_html=True)
 
-        # ── Web verification ──────────────────────────────────────────────────
+    with fc2:
         st.markdown(
-            '<div class="settings-label">'
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
+            '<div class="filter-label">'
+            '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
             'Web verification</div>',
             unsafe_allow_html=True,
         )
         run_web = st.checkbox("Check against open web", value=False, key="run_web_chk")
         st.markdown(
-            '<span class="settings-sub">Compare content against publicly accessible web pages.</span>',
+            '<div class="filter-sub">Compare against publicly accessible web pages.</div>',
             unsafe_allow_html=True,
         )
-        if run_web:
-            n_passages   = st.slider("Passages per article", 4, 20, 8)
-            web_thresh   = st.slider("Match threshold", 70, 100, 85, format="%d%%")
-            own_domain   = st.text_input("Your domain (excluded)", "kollegeapply.com")
-            excl_domains = st.text_area("Other excluded domains",
-                                        "wikipedia.org\nyoutube.com", height=60)
 
-        st.divider()
+    with _d2:
+        st.markdown('<div class="filter-divider"></div>', unsafe_allow_html=True)
 
-        # ── Results display ───────────────────────────────────────────────────
+    with fc3:
         st.markdown(
-            '<div class="settings-label">'
-            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
-            'Results display</div>',
+            '<div class="filter-label">'
+            '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
+            'Max results</div>',
             unsafe_allow_html=True,
         )
-        top_n = st.number_input("Max results shown", 10, 5000, 200)
+        top_n = st.number_input("Max results shown", 10, 5000, 200, label_visibility="collapsed")
         st.markdown(
-            '<span class="settings-sub">Maximum matches displayed per run.</span>',
+            '<div class="filter-sub">Matches displayed per run.</div>',
             unsafe_allow_html=True,
         )
 
-        st.divider()
+    with _d3:
+        st.markdown('<div class="filter-divider"></div>', unsafe_allow_html=True)
 
-        # ── Engine status ─────────────────────────────────────────────────────
+    with fc4:
+        st.markdown('<div class="filter-label">Engine</div>', unsafe_allow_html=True)
         if _EMBED_AVAILABLE:
             st.markdown(
-                '<div style="display:flex;align-items:center;gap:7px;padding:8px 10px;'
+                '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;'
                 'background:var(--green-bg);border:1px solid var(--green-border);'
-                'border-radius:var(--radius-sm);font-size:11.5px;color:var(--green-text);">'
-                '<span style="width:7px;height:7px;border-radius:50%;background:var(--green);'
+                'border-radius:var(--radius-sm);font-size:11px;color:var(--green-text);">'
+                '<span style="width:6px;height:6px;border-radius:50%;background:var(--green);'
                 'flex-shrink:0;animation:pulse 1.8s ease infinite;"></span>'
-                '<strong>Semantic engine active</strong> &nbsp;·&nbsp; paraphrase detection on</div>',
+                '<strong>Semantic on</strong></div>',
                 unsafe_allow_html=True,
             )
         else:
             st.markdown(
-                '<div style="display:flex;align-items:center;gap:7px;padding:8px 10px;'
+                '<div style="display:flex;align-items:center;gap:6px;padding:6px 10px;'
                 'background:var(--amber-bg);border:1px solid var(--amber-border);'
-                'border-radius:var(--radius-sm);font-size:11.5px;color:var(--amber-text);">'
-                '<span style="width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0;"></span>'
-                'Phrase-only mode &nbsp;·&nbsp; <code>pip install sentence-transformers</code> for semantic</div>',
+                'border-radius:var(--radius-sm);font-size:11px;color:var(--amber-text);">'
+                '<span style="width:6px;height:6px;border-radius:50%;background:var(--amber);flex-shrink:0;"></span>'
+                'Phrase only</div>',
                 unsafe_allow_html=True,
             )
 
+# Web check options (shown inline below the filter bar when enabled)
+if run_web:
+    with st.container(border=True):
+        st.markdown(
+            '<div class="filter-label" style="margin-bottom:10px;">'
+            '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
+            'Web check options</div>',
+            unsafe_allow_html=True,
+        )
+        wc1, wc2, wc3, wc4 = st.columns([2, 2, 3, 3])
+        n_passages   = wc1.slider("Passages per article", 4, 20, 8)
+        web_thresh   = wc2.slider("Match threshold", 70, 100, 85, format="%d%%")
+        own_domain   = wc3.text_input("Your domain (excluded)", "kollegeapply.com")
+        excl_domains = wc4.text_area("Other excluded domains", "wikipedia.org\nyoutube.com", height=68)
 
-# ── Left column: upload + run ─────────────────────────────────────────────────
-with left_col:
+similar_topic_threshold = 80 if flag_similar else None
+
+# ── Upload + run ──────────────────────────────────────────────────────────────
+if True:
 
     # ── Section 1: Upload ─────────────────────────────────────────────────────
     with st.container(border=True):
