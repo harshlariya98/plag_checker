@@ -943,7 +943,9 @@ st.markdown(
     f'    <span class="nav-tab {_tab_web_cls}">Web Check</span>'
     f'    <span class="nav-tab {_tab_res_cls}">{_dot_res}Results</span>'
     f'  </nav>'
-    f'  <div class="app-header-right">{_corpus_badge}</div>'
+    f'  <div class="app-header-right">'
+    f'    {_corpus_badge}'
+    f'  </div>'
     f'</div>',
     unsafe_allow_html=True,
 )
@@ -1016,6 +1018,20 @@ _GUIDE_SECTIONS = [
      "• The tool is for internal use only. Do not share the URL externally."),
 ]
 
+def _pdf_safe(text: str) -> str:
+    """Replace Unicode chars not in latin-1 with ASCII equivalents for fpdf2."""
+    return (text
+        .replace("—", "-")   # em dash
+        .replace("–", "-")   # en dash
+        .replace("‘", "'")   # left single quote
+        .replace("’", "'")   # right single quote / apostrophe
+        .replace("“", '"')   # left double quote
+        .replace("”", '"')   # right double quote
+        .replace("…", "...")  # ellipsis
+        .replace(" ", " ")   # non-breaking space
+        .encode("latin-1", errors="replace").decode("latin-1")
+    )
+
 def _build_pdf():
     from fpdf import FPDF
     pdf = FPDF()
@@ -1023,18 +1039,18 @@ def _build_pdf():
     pdf.add_page()
     pdf.set_font("Helvetica", "B", 20)
     pdf.set_text_color(30, 64, 175)
-    pdf.cell(0, 10, "KollegeApply Plag Checker — User Guide", ln=True)
+    pdf.cell(0, 10, _pdf_safe("KollegeApply Plag Checker - User Guide"), ln=True)
     pdf.set_font("Helvetica", "", 10)
     pdf.set_text_color(100, 116, 139)
-    pdf.cell(0, 6, "Internal tool — for KollegeApply content team only", ln=True)
+    pdf.cell(0, 6, _pdf_safe("Internal tool - for KollegeApply content team only"), ln=True)
     pdf.ln(4)
     for title, body in _GUIDE_SECTIONS:
         pdf.set_font("Helvetica", "B", 13)
         pdf.set_text_color(15, 23, 42)
-        pdf.cell(0, 8, title, ln=True)
+        pdf.cell(0, 8, _pdf_safe(title), ln=True)
         pdf.set_font("Helvetica", "", 10)
         pdf.set_text_color(51, 65, 85)
-        pdf.multi_cell(0, 6, body)
+        pdf.multi_cell(0, 6, _pdf_safe(body))
         pdf.ln(4)
     return bytes(pdf.output())
 
@@ -1056,11 +1072,64 @@ def _show_guide():
                 st.markdown(line)
         st.write("")
 
-# Render the help button just below the header
-_hcol1, _hcol2 = st.columns([10, 1])
-with _hcol2:
-    if st.button("❓ Guide", use_container_width=True, help="How to use this tool"):
-        _show_guide()
+# Guide button — rendered as a Streamlit button, then JS floats it into the header
+if st.button("❓ Guide", key="_guide_btn"):
+    _show_guide()
+st.markdown("""
+<style>
+.guide-btn-floated {
+    position: fixed !important;
+    top: 10px !important;
+    right: 220px !important;
+    z-index: 9999999 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: auto !important;
+    display: block !important;
+}
+.guide-btn-floated button {
+    height: 34px !important;
+    padding: 0 13px !important;
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    border-radius: 8px !important;
+    border: 1px solid #d1d9e6 !important;
+    background: #f1f4f9 !important;
+    color: #16324f !important;
+    box-shadow: 0 1px 3px rgba(22,50,79,.08) !important;
+    min-height: unset !important;
+    line-height: 1 !important;
+    white-space: nowrap !important;
+}
+.guide-btn-floated button:hover {
+    background: #e4eaf3 !important;
+    border-color: #b0bed4 !important;
+}
+</style>
+<script>
+(function floatGuideBtn() {
+    function tryFloat() {
+        var btns = document.querySelectorAll('button');
+        for (var i = 0; i < btns.length; i++) {
+            if (btns[i].textContent.trim() === '❓ Guide') {
+                var wrapper = btns[i].closest('[data-testid="stButton"]') ||
+                              btns[i].closest('[data-testid="element-container"]') ||
+                              btns[i].parentElement;
+                if (wrapper && !wrapper.classList.contains('guide-btn-floated')) {
+                    wrapper.classList.add('guide-btn-floated');
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+    if (!tryFloat()) {
+        var obs = new MutationObserver(function() { if (tryFloat()) obs.disconnect(); });
+        obs.observe(document.body, { childList: true, subtree: true });
+    }
+})();
+</script>
+""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Corpus check + load
