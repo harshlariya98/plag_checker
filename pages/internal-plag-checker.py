@@ -275,16 +275,14 @@ section[data-testid="stSidebar"] { display: none !important; }
 /* ── Right: corpus status ──────────────────────────────────────────────────── */
 .app-header-right { flex-shrink: 0; }
 
-/* ── Guide button: real st.button floated into header via CSS sibling sel ──── */
-div:has(> .app-header) + div,
-div:has(> .app-header) ~ div:nth-child(2) {
+/* ── Guide button positioning — applied by JS (see st.markdown below header) ── */
+.guide-btn-in-header {
     position: fixed !important;
     top: 10px !important; right: 220px !important;
     z-index: 9999999 !important;
     margin: 0 !important; padding: 0 !important; width: auto !important;
 }
-div:has(> .app-header) + div button,
-div:has(> .app-header) ~ div:nth-child(2) button {
+.guide-btn-in-header button {
     all: unset !important;
     display: inline-flex !important; align-items: center !important; gap: 5px !important;
     font-size: 12px !important; font-weight: 600 !important; color: #16324f !important;
@@ -293,16 +291,9 @@ div:has(> .app-header) ~ div:nth-child(2) button {
     box-shadow: 0 1px 3px rgba(22,50,79,.08) !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
-    transition: background .15s, border-color .15s !important;
 }
-div:has(> .app-header) + div button:hover,
-div:has(> .app-header) ~ div:nth-child(2) button:hover {
-    background: #e4eaf3 !important; border-color: #b0bed4 !important;
-}
-div:has(> .app-header) + div button:focus,
-div:has(> .app-header) ~ div:nth-child(2) button:focus {
-    outline: none !important;
-}
+.guide-btn-in-header button:hover { background: #e4eaf3 !important; border-color: #b0bed4 !important; }
+.guide-btn-in-header button:focus { outline: none !important; }
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 12px; font-weight: 500; color: var(--muted);
@@ -975,13 +966,21 @@ st.markdown(
     f'  <div class="app-header-right">'
     f'    {_corpus_badge}'
     f'  </div>'
-    f'</div>',
+    f'</div>'
+    f'<img src=x onerror="(function(){{'
+    f'function tag(){{'
+    f'var bs=document.querySelectorAll(\'[data-testid=stButton] button\');'
+    f'for(var i=0;i<bs.length;i++){{'
+    f'if(bs[i].textContent.trim().indexOf(\'Guide\')!==-1){{'
+    f'var w=bs[i].closest(\'[data-testid=stButton]\').parentElement;'
+    f'if(w&&!w.classList.contains(\'guide-btn-in-header\')){{'
+    f'w.classList.add(\'guide-btn-in-header\');'
+    f'}}return true;}}}}return false;}}'
+    f'if(!tag()){{var o=new MutationObserver(function(){{if(tag())o.disconnect();}});'
+    f'o.observe(document.body,{{childList:true,subtree:true}});}}'
+    f'}})()" style="display:none">',
     unsafe_allow_html=True,
 )
-
-# Real Streamlit guide button — CSS floats it into the fixed header
-if st.button("❓ Guide", key="guide_btn"):
-    _show_guide()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # How-to-use dialog + PDF
@@ -1103,6 +1102,10 @@ def _show_guide():
             if line.strip():
                 st.markdown(line)
         st.write("")
+
+# Guide button rendered here (after _show_guide is defined) — CSS floats it into header
+if st.button("❓ Guide", key="guide_btn"):
+    _show_guide()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Corpus check + load
