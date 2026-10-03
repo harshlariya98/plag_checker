@@ -4,6 +4,7 @@ Compatible with Python 3.9+.
 """
 
 import re
+import json
 import time
 import random
 from collections import Counter
@@ -16,6 +17,29 @@ from bs4 import BeautifulSoup
 from rapidfuzz import fuzz
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+# Patterns that appear in widget/boilerplate paragraphs — not article content
+_WIDGET_RE = re.compile(
+    r"(?:also\s+read|read\s+also|recommended|related\s+article|you\s+might\s+like|"
+    r"trending|most\s+read|top\s+stories|editor.?s?\s+pick|"
+    r"loading\s+comments?|advertisement|subscribe\s+now|"
+    r"click\s+here\s+to|share\s+this\s+article|follow\s+us\s+on|"
+    r"check\s+out\s+our\s+latest)",
+    re.IGNORECASE,
+)
+
+_REMOVE_SELECTORS = [
+    "header", "footer", "nav", "aside", "script", "style",
+    ".related", ".recommended", ".also-read", ".share", ".social",
+    ".newsletter", ".advert", ".ads", ".ad", ".sidebar",
+    "#comments", ".comments", ".comments-area", "#disqus_thread",
+    ".trending", ".popular", ".top-stories", ".most-read", ".widget",
+]
+
+_CONTENT_SELECTORS = [
+    "[itemprop='articleBody']", "article",
+    ".article-body", ".post-content", ".article-content", ".entry-content",
+]
 
 try:
     from ddgs import DDGS
@@ -48,18 +72,79 @@ def domain_of(url):
     return urlparse(url).netloc.lower().replace("www.", "")
 
 
+def _extract_jsonld_body(html_text):
+    """Return articleBody from JSON-LD structured data, or None."""
+    try:
+        soup = BeautifulSoup(html_text, "html.parser")
+        for script in soup.find_all("script", attrs={"type": "application/ld+json"}):
+            raw = (script.string or "").strip()
+            if not raw:
+                continue
+            try:
+                data = json.loads(raw)
+            except Exception:
+                continue
+            candidates = data if isinstance(data, list) else [data]
+            # expand @graph
+            extra = []
+            for obj in candidates:
+                if isinstance(obj, dict) and isinstance(obj.get("@graph"), list):
+                    extra.extend(obj["@graph"])
+            candidates = candidates + extra
+            for obj in candidates:
+                if not isinstance(obj, dict):
+                    continue
+                atype = obj.get("@type", "")
+                types = [str(t).lower() for t in (atype if isinstance(atype, list) else [atype])]
+                if any(t in ("newsarticle", "article", "blogposting") for t in types):
+                    body = obj.get("articleBody", "")
+                    if isinstance(body, str) and len(body) > 200:
+                        return re.sub(r"\s+", " ", body).strip()
+    except Exception:
+        pass
+    return None
+
+
+def _extract_html_filtered(html_text):
+    """BS4 fallback: strip boilerplate/widget blocks, then extract paragraph text."""
+    try:
+        soup = BeautifulSoup(html_text, "html.parser")
+        for sel in _REMOVE_SELECTORS:
+            for tag in soup.select(sel):
+                tag.decompose()
+        node = next((soup.select_one(s) for s in _CONTENT_SELECTORS if soup.select_one(s)), None)
+        if not node and soup.body:
+            node = soup.body
+        if not node:
+            return ""
+        paras = []
+        for p in node.find_all("p", recursive=True):
+            t = p.get_text(" ", strip=True)
+            if not t or _WIDGET_RE.search(t):
+                continue
+            words = re.findall(r"[a-z0-9]+", t.lower())
+            if len(words) < 8:
+                continue
+            paras.append(t)
+        return re.sub(r"\s+", " ", "\n".join(paras)).strip()
+    except Exception:
+        return ""
+
+
 def fetch_text(url):
-    """Fetch a URL and extract article text."""
+    """Fetch a URL and extract clean article text.
+    Priority: JSON-LD articleBody → trafilatura → widget-filtered BS4 fallback."""
     if url in _page_cache:
         return _page_cache[url]
     text = ""
     try:
         r = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
         if r.status_code == 200 and "html" in r.headers.get("content-type", ""):
-            text = trafilatura.extract(r.text, include_comments=False, include_tables=False) or ""
+            text = _extract_jsonld_body(r.text) or ""
             if not text:
-                soup = BeautifulSoup(r.text, "html.parser")
-                text = " ".join(p.get_text(" ", strip=True) for p in soup.find_all("p"))
+                text = trafilatura.extract(r.text, include_comments=False, include_tables=False) or ""
+            if not text:
+                text = _extract_html_filtered(r.text)
     except Exception:
         text = ""
     _page_cache[url] = text
@@ -71,11 +156,11 @@ def extract_text_from_html(html_content):
     if not html_content or not isinstance(html_content, str):
         return ""
     try:
-        text = trafilatura.extract(html_content, include_comments=False, include_tables=False) or ""
+        text = _extract_jsonld_body(html_content) or ""
         if not text:
-            soup = BeautifulSoup(html_content, "html.parser")
-            tags = soup.find_all(["p", "h1", "h2", "h3", "h4", "h5", "li", "td"])
-            text = " ".join(t.get_text(" ", strip=True) for t in tags)
+            text = trafilatura.extract(html_content, include_comments=False, include_tables=False) or ""
+        if not text:
+            text = _extract_html_filtered(html_content)
         return re.sub(r"\s+", " ", text).strip()
     except Exception:
         return ""

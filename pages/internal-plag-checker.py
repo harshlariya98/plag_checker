@@ -698,7 +698,7 @@ def _save_to_disk(key, vec, mat, urls, texts=None):
     save_npz(         os.path.join(CACHE_DIR, f"{key}.mat.npz"), mat)
     joblib.dump(urls, os.path.join(CACHE_DIR, f"{key}.urls.pkl"))
     if texts is not None:
-        short = [t[:3000] for t in texts]
+        short = [t[:6000] for t in texts]
         joblib.dump(short, os.path.join(CACHE_DIR, f"{key}.texts.pkl"))
 
 
@@ -720,7 +720,7 @@ def _ensure_corpus_index():
             texts_path = os.path.join(CACHE_DIR, f"{key}.texts.pkl")
             with st.spinner("Building phrase index (one-time)…"):
                 _df = load_corpus(CORPUS_PATH)
-                short = [t[:3000] for t in _vectorized_strip(_df["description"]).tolist()]
+                short = [t[:6000] for t in _vectorized_strip(_df["description"]).tolist()]
                 joblib.dump(short, texts_path)
             st.session_state["corpus_texts"] = short
         return
@@ -787,7 +787,7 @@ def _ensure_corpus_index():
     st.session_state["corpus_urls"]  = urls
     st.session_state["corpus_vec"]   = vec
     st.session_state["corpus_mat"]   = mat
-    st.session_state["corpus_texts"] = [t[:3000] for t in texts]
+    st.session_state["corpus_texts"] = [t[:6000] for t in texts]
     st.rerun()
 
 
@@ -1125,7 +1125,7 @@ with left_col:
                     return count
 
                 import numpy as np_mod
-                TOP_K = 5  # check shingles against top-5 TF-IDF candidates
+                TOP_K = 8  # check shingles against top-8 TF-IDF candidates
 
                 if valid_new and corpus_mat.shape[0] > 0:
                     vt      = [t for _, t in valid_new]
