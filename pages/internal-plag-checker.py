@@ -792,7 +792,7 @@ def load_corpus(path):
     return df
 
 def _cache_key():
-    return str(int(os.path.getmtime(CORPUS_PATH)))
+    return str(os.path.getsize(CORPUS_PATH))
 
 def _disk_cache_exists(key):
     return all(os.path.exists(os.path.join(CACHE_DIR, f"{key}.{ext}"))
