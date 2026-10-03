@@ -950,6 +950,119 @@ st.markdown(
 
 
 # ─────────────────────────────────────────────────────────────────────────────
+# How-to-use dialog + PDF
+# ─────────────────────────────────────────────────────────────────────────────
+_GUIDE_SECTIONS = [
+    ("What does this tool do?",
+     "The KollegeApply Internal Plag Checker compares articles you upload against our entire "
+     "published corpus (~millions of articles). It detects two types of problems:\n"
+     "1. Duplicate / copied content — text that appears almost verbatim in our corpus.\n"
+     "2. Similar topic — articles that cover the same subject with heavy content overlap, "
+     "even if the wording is different."),
+
+    ("How to prepare your CSV",
+     "Your CSV must have at least one column:\n"
+     "• url (required) — the full article URL (e.g. https://kollegeapply.com/article/...)\n"
+     "• description (optional but strongly recommended) — the full HTML or plain-text body "
+     "of the article. Providing this column skips a live page fetch and makes the check "
+     "3–5× faster.\n\n"
+     "Column names are detected automatically. If your column is called 'link', 'page_url', "
+     "'content', 'body', etc., the tool will map it correctly. If detection fails, rename "
+     "your columns to 'url' and 'description'."),
+
+    ("How scoring works",
+     "Each article is scored using three signals combined:\n\n"
+     "1. TF-IDF Cosine Similarity — finds the closest matching article in the corpus using "
+     "term-frequency weighted word overlap. This identifies the best candidate to compare against.\n\n"
+     "2. Shingle Jaccard (k=4 and k=5) — compares sequences of 4–5 consecutive words between "
+     "the new article and the top-15 corpus candidates. This is the primary copy-detection signal. "
+     "It catches exact and near-exact copies even when sentences are rearranged.\n\n"
+     "3. Paragraph-level Jaccard — splits both articles into paragraphs and finds the highest-"
+     "scoring paragraph pair. This catches partial copies where only one section is lifted.\n\n"
+     "The final Copy Score is the maximum of signals 2 and 3, expressed as a percentage."),
+
+    ("How to read the verdict",
+     "• Duplicate (≥35%) — the article shares substantial verbatim content with a corpus article. "
+     "Needs rewrite or should not be published.\n"
+     "• High Overlap (≥14%) — significant word-sequence overlap. Review carefully before publishing.\n"
+     "• Similar Topic — TF-IDF similarity is high (≥80%) but copy score is low. The article "
+     "covers the same topic as an existing one. Consider merging or differentiating.\n"
+     "• Unique — no significant overlap detected. Safe to publish.\n\n"
+     "The 'Closest corpus match' column shows which existing article is most similar."),
+
+    ("What is OOV ratio?",
+     "OOV stands for Out-of-Vocabulary. It measures what percentage of words in the new article "
+     "do not appear anywhere in the corpus vocabulary.\n\n"
+     "High OOV (>40%) usually means the article is genuinely new content on a topic we haven't "
+     "covered before — it will naturally score low on similarity even if well-written.\n\n"
+     "Low OOV (<10%) means the article uses the same vocabulary as our existing content, which "
+     "is expected for evergreen topics like JEE, NEET, college admissions, etc."),
+
+    ("Web Check (optional)",
+     "When enabled, each article is also checked against the open web using DuckDuckGo search. "
+     "Exact phrases from the article are searched and the top results are fetched and fuzzy-matched.\n\n"
+     "This catches content copied from external websites (not just our own corpus).\n\n"
+     "Web check is much slower (~30–60s per article) and uses network requests, so use it "
+     "selectively — e.g. only on articles with low corpus scores that you still want to verify "
+     "against the wider web."),
+
+    ("Tips for best results",
+     "• Always include the 'description' column — it makes checks 3–5× faster.\n"
+     "• Run in batches of 50–200 articles for comfortable speed.\n"
+     "• A Copy Score of 35%+ is a strong signal — investigate the matched corpus article.\n"
+     "• Scores of 15–34% are worth reviewing but may be acceptable for topic-driven articles "
+     "(e.g. two articles about JEE eligibility will share many phrases).\n"
+     "• Do not rely solely on this tool — always read the flagged article pairs manually.\n"
+     "• The tool is for internal use only. Do not share the URL externally."),
+]
+
+def _build_pdf():
+    from fpdf import FPDF
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 20)
+    pdf.set_text_color(30, 64, 175)
+    pdf.cell(0, 10, "KollegeApply Plag Checker — User Guide", ln=True)
+    pdf.set_font("Helvetica", "", 10)
+    pdf.set_text_color(100, 116, 139)
+    pdf.cell(0, 6, "Internal tool — for KollegeApply content team only", ln=True)
+    pdf.ln(4)
+    for title, body in _GUIDE_SECTIONS:
+        pdf.set_font("Helvetica", "B", 13)
+        pdf.set_text_color(15, 23, 42)
+        pdf.cell(0, 8, title, ln=True)
+        pdf.set_font("Helvetica", "", 10)
+        pdf.set_text_color(51, 65, 85)
+        pdf.multi_cell(0, 6, body)
+        pdf.ln(4)
+    return bytes(pdf.output())
+
+@st.dialog("📖  How to use the Plag Checker", width="large")
+def _show_guide():
+    pdf_bytes = _build_pdf()
+    st.download_button(
+        "⬇️  Download as PDF",
+        data=pdf_bytes,
+        file_name="plag_checker_user_guide.pdf",
+        mime="application/pdf",
+        type="primary",
+    )
+    st.divider()
+    for title, body in _GUIDE_SECTIONS:
+        st.markdown(f"**{title}**")
+        for line in body.split("\n"):
+            if line.strip():
+                st.markdown(line)
+        st.write("")
+
+# Render the help button just below the header
+_hcol1, _hcol2 = st.columns([10, 1])
+with _hcol2:
+    if st.button("❓ Guide", use_container_width=True, help="How to use this tool"):
+        _show_guide()
+
+# ─────────────────────────────────────────────────────────────────────────────
 # Corpus check + load
 # ─────────────────────────────────────────────────────────────────────────────
 if not os.path.exists(CORPUS_PATH):
