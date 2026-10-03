@@ -570,12 +570,15 @@ def smart_col(df, candidates):
             return lower[c]
     return None
 
-def verdict_for(score, threshold):
+def verdict_for(score, threshold, phrase_match=None):
     if score >= threshold:
+        # downgrade if phrases don't actually match (topic overlap, not copying)
+        if phrase_match is not None and phrase_match < 25:
+            return "warn", "Similar topic"
         return "danger", "Duplicate"
     if score >= 40:
-        return "warn",   "Review"
-    return "ok",     "Unique"
+        return "warn", "Review"
+    return "ok",   "Unique"
 
 def normalise_new(df):
     url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
@@ -613,12 +616,17 @@ def _load_from_disk(key):
     vec  = joblib.load(os.path.join(CACHE_DIR, f"{key}.vec.pkl"))
     mat  = load_npz(os.path.join(CACHE_DIR, f"{key}.mat.npz"))
     urls = joblib.load(os.path.join(CACHE_DIR, f"{key}.urls.pkl"))
-    return vec, mat, urls
+    texts_path = os.path.join(CACHE_DIR, f"{key}.texts.pkl")
+    texts = joblib.load(texts_path) if os.path.exists(texts_path) else None
+    return vec, mat, urls, texts
 
-def _save_to_disk(key, vec, mat, urls):
+def _save_to_disk(key, vec, mat, urls, texts=None):
     joblib.dump(vec,  os.path.join(CACHE_DIR, f"{key}.vec.pkl"))
     save_npz(         os.path.join(CACHE_DIR, f"{key}.mat.npz"), mat)
     joblib.dump(urls, os.path.join(CACHE_DIR, f"{key}.urls.pkl"))
+    if texts is not None:
+        short = [t[:3000] for t in texts]
+        joblib.dump(short, os.path.join(CACHE_DIR, f"{key}.texts.pkl"))
 
 
 def _ensure_corpus_index():
@@ -629,10 +637,19 @@ def _ensure_corpus_index():
 
     if _disk_cache_exists(key):
         with st.spinner("Loading index from disk…"):
-            vec, mat, urls = _load_from_disk(key)
-        st.session_state["corpus_urls"] = urls
-        st.session_state["corpus_vec"]  = vec
-        st.session_state["corpus_mat"]  = mat
+            vec, mat, urls, texts = _load_from_disk(key)
+        st.session_state["corpus_urls"]   = urls
+        st.session_state["corpus_vec"]    = vec
+        st.session_state["corpus_mat"]    = mat
+        st.session_state["corpus_texts"]  = texts
+        # one-time migration: build texts.pkl if it didn't exist yet
+        if texts is None:
+            texts_path = os.path.join(CACHE_DIR, f"{key}.texts.pkl")
+            with st.spinner("Building phrase index (one-time)…"):
+                _df = load_corpus(CORPUS_PATH)
+                short = [t[:3000] for t in _vectorized_strip(_df["description"]).tolist()]
+                joblib.dump(short, texts_path)
+            st.session_state["corpus_texts"] = short
         return
 
     # ── first-time build ──────────────────────────────────────────────────────
@@ -691,12 +708,13 @@ def _ensure_corpus_index():
         # Step 3 — save
         st.markdown('<p class="build-step-title">Step 3 of 3 &nbsp;·&nbsp; Saving to disk</p>',
                     unsafe_allow_html=True)
-        _run_with_progress(lambda: _save_to_disk(key, vec, mat, urls),
+        _run_with_progress(lambda: _save_to_disk(key, vec, mat, urls, texts=texts),
                            "Writing files", 15)
 
-    st.session_state["corpus_urls"] = urls
-    st.session_state["corpus_vec"]  = vec
-    st.session_state["corpus_mat"]  = mat
+    st.session_state["corpus_urls"]  = urls
+    st.session_state["corpus_vec"]   = vec
+    st.session_state["corpus_mat"]   = mat
+    st.session_state["corpus_texts"] = [t[:3000] for t in texts]
     st.rerun()
 
 
@@ -754,10 +772,11 @@ if not os.path.exists(CORPUS_PATH):
 
 _ensure_corpus_index()
 
-corpus_urls = st.session_state["corpus_urls"]
-corpus_vec  = st.session_state["corpus_vec"]
-corpus_mat  = st.session_state["corpus_mat"]
-n_corp      = len(corpus_urls)
+corpus_urls  = st.session_state["corpus_urls"]
+corpus_vec   = st.session_state["corpus_vec"]
+corpus_mat   = st.session_state["corpus_mat"]
+corpus_texts = st.session_state.get("corpus_texts")   # may be None for old caches
+n_corp       = len(corpus_urls)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -972,7 +991,7 @@ with left_col:
             # similarity
             with st.status("⚡ Computing similarity…", expanded=False) as s3:
                 valid_new   = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
-                sim_results = [(0.0, 0, 0.0)] * n_new  # (score, corpus_idx, oov_ratio)
+                sim_results = [(0.0, 0, 0.0, None)] * n_new  # (score, corpus_idx, oov_ratio, phrase_match)
 
                 corpus_vocab = set(corpus_vec.vocabulary_.keys())
                 _stop = corpus_vec.get_stop_words() or set()
@@ -987,6 +1006,20 @@ with left_col:
 
                 def _norm_url(u):
                     return str(u).strip().lower().rstrip("/")
+
+                def _phrase_overlap(new_text, corp_text, fuzz_threshold=72):
+                    """% of new-article passages that fuzzy-match somewhere in the corpus article."""
+                    if not corp_text or not new_text:
+                        return 0.0
+                    passages = build_passages(new_text, words_per_passage=25, n_samples=8)
+                    if not passages:
+                        return 0.0
+                    norm_corp = normalize(corp_text)
+                    matched = sum(
+                        1 for p in passages
+                        if fuzz.partial_ratio(normalize(p), norm_corp) >= fuzz_threshold
+                    )
+                    return round(matched / len(passages) * 100, 1)
 
                 if valid_new and corpus_mat.shape[0] > 0:
                     vt      = [t for _, t in valid_new]
@@ -1003,7 +1036,11 @@ with left_col:
                             scores[corpus_url_idx[row_url]] = -1.0
                         best_j  = int(scores.argmax())
                         best_sc = round(float(scores[best_j]) * 100, 1)
-                        sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t))
+                        # Phrase-level overlap for articles above soft threshold
+                        phrase_ov = None
+                        if corpus_texts is not None and best_sc >= max(dup_threshold - 15, 40):
+                            phrase_ov = _phrase_overlap(t, corpus_texts[best_j])
+                        sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t), phrase_ov)
                 s3.update(label="⚡ Similarity computed", state="complete")
 
             # optional web check
@@ -1033,17 +1070,18 @@ with left_col:
 
             # assemble
             final_rows = []
-            for row, txt, wc, (sc, ci, oov) in zip(
+            for row, txt, wc, (sc, ci, oov, phrase_ov) in zip(
                 new_df.itertuples(), new_texts, new_wc, sim_results
             ):
                 corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
                 wr       = web_res.get(row.url, {})
-                cls, vlabel = verdict_for(sc, dup_threshold)[:2]
+                cls, vlabel = verdict_for(sc, dup_threshold, phrase_match=phrase_ov)[:2]
                 final_rows.append({
                     "url":                    row.url,
                     "word_count":             wc,
                     "similarity_to_corpus_%": sc,
                     "new_vocab_%":            oov,
+                    "phrase_match_%":         phrase_ov,
                     "verdict":                vlabel,
                     "matched_existing_url":   corp_url,
                     "web_plag_score":         wr.get("plagiarism_score"),
@@ -1079,10 +1117,9 @@ if results:
         for r in results
     ])
 
-    n_dup = int((rdf["similarity_to_corpus_%"] >= dup_threshold).sum())
-    n_rev = int(((rdf["similarity_to_corpus_%"] >= 40) &
-                 (rdf["similarity_to_corpus_%"] < dup_threshold)).sum())
-    n_ok  = int((rdf["similarity_to_corpus_%"] < 40).sum())
+    n_dup = int((rdf["verdict"] == "Duplicate").sum())
+    n_rev = int(rdf["verdict"].isin(["Review", "Similar topic"]).sum())
+    n_ok  = int((rdf["verdict"] == "Unique").sum())
     avg_s = f"{rdf['similarity_to_corpus_%'].mean():.1f}%"
     hi_s  = f"{rdf['similarity_to_corpus_%'].max():.1f}%"
 
@@ -1136,7 +1173,7 @@ if results:
     # ── Table + detail cards ───────────────────────────────────────────────────
     if view in ("📋  All results", "🚨  Duplicates only"):
         show = results if view == "📋  All results" else [
-            r for r in results if r["similarity_to_corpus_%"] >= dup_threshold
+            r for r in results if r["verdict"] == "Duplicate"
         ]
         show = sorted(show, key=lambda r: r["similarity_to_corpus_%"], reverse=True)
         show = show[:int(top_n)]
@@ -1151,6 +1188,7 @@ if results:
                 "Article":          r["url"],
                 "Words":            r["word_count"],
                 "Similarity":       r["similarity_to_corpus_%"],
+                "Phrase match %":   r.get("phrase_match_%"),
                 "New vocab %":      r.get("new_vocab_%", 0.0),
                 "Verdict":          r["verdict"],
                 "Closest existing": r["matched_existing_url"],
@@ -1162,6 +1200,11 @@ if results:
                     "Article":          st.column_config.LinkColumn(width="large"),
                     "Words":            st.column_config.NumberColumn(width="small"),
                     "Similarity":       st.column_config.ProgressColumn(
+                        min_value=0, max_value=100, format="%.0f%%", width="small"),
+                    "Phrase match %":   st.column_config.ProgressColumn(
+                        help="% of passages in this article that actually match sentences in the corpus. "
+                             "Low = different content despite similar vocabulary (topic overlap, not copied). "
+                             "High = text is genuinely copied.",
                         min_value=0, max_value=100, format="%.0f%%", width="small"),
                     "New vocab %":      st.column_config.ProgressColumn(
                         help="% of meaningful words in this article not found anywhere in the corpus. "
@@ -1181,7 +1224,7 @@ if results:
                 )
                 for r in flagged:
                     sc  = r["similarity_to_corpus_%"]
-                    cls, vlabel = verdict_for(sc, dup_threshold)[:2]
+                    cls, vlabel = verdict_for(sc, dup_threshold, phrase_match=r.get("phrase_match_%"))[:2]
                     icon = "🚨" if cls == "danger" else "👀"
                     new_e   = html_module.escape(r["url"])
                     corp_u  = html_module.escape(r["matched_existing_url"], quote=True)
@@ -1199,7 +1242,9 @@ if results:
                         f'<span class="rc-badge {cls}">{icon} {vlabel}</span>'
                         f'<div class="rc-label" style="margin-top:.6rem;">Closest match in corpus</div>'
                         f'<a href="{corp_u}" target="_blank">{corp_ue}</a>'
-                        f'<div class="rc-meta">{r["word_count"]:,} words &nbsp;·&nbsp; {sc:.1f}% similar</div>'
+                        f'<div class="rc-meta">{r["word_count"]:,} words &nbsp;·&nbsp; {sc:.1f}% similar'
+                        + (f' &nbsp;·&nbsp; {r["phrase_match_%"]:.0f}% phrase match' if r.get("phrase_match_%") is not None else "")
+                        + '</div>'
                         f'</div></div>',
                         unsafe_allow_html=True,
                     )
@@ -1252,9 +1297,7 @@ if results:
     # ── Export ─────────────────────────────────────────────────────────────────
     st.divider()
     export = rdf.drop(columns=["_matches", "_text"], errors="ignore").copy()
-    export["risk_level"] = export["similarity_to_corpus_%"].apply(
-        lambda s: "Duplicate" if s >= dup_threshold else "Review" if s >= 40 else "Unique"
-    )
+    export["risk_level"] = export["verdict"]  # already computed with phrase-match logic
     fname = f"plag_results_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
     dl_col, cap_col = st.columns([2, 5], vertical_alignment="center")
     dl_col.download_button(
