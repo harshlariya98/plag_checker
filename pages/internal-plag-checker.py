@@ -1088,13 +1088,16 @@ def _build_pdf():
 @st.dialog("📖  How to use the Plag Checker", width="large")
 def _show_guide():
     pdf_bytes = _build_pdf()
-    st.download_button(
-        "⬇️  Download as PDF",
-        data=pdf_bytes,
-        file_name="plag_checker_user_guide.pdf",
-        mime="application/pdf",
-        type="primary",
-    )
+    _, _pdf_col = st.columns([1, 0.28])
+    with _pdf_col:
+        st.download_button(
+            "⬇️  Download as PDF",
+            data=pdf_bytes,
+            file_name="plag_checker_user_guide.pdf",
+            mime="application/pdf",
+            type="primary",
+            use_container_width=True,
+        )
     st.divider()
     for title, body in _GUIDE_SECTIONS:
         st.markdown(f"**{title}**")
