@@ -141,7 +141,13 @@ html, body, [class*="css"] {
     background: var(--bg) !important;
     color: var(--text) !important;
 }
-.block-container { padding: 5rem 2rem 4rem !important; max-width: 1440px !important; }
+.block-container { padding: 4rem 2rem 4rem !important; max-width: 1440px !important; }
+/* Collapse any flow-space left by the fixed header's markdown wrapper */
+div[data-testid="stMarkdown"]:has(.app-header) {
+    height: 0 !important; overflow: visible !important;
+    margin: 0 !important; padding: 0 !important;
+    line-height: 0 !important;
+}
 
 /* Streamlit top bar — hide it; we render our own fixed header */
 header[data-testid="stHeader"] { display: none !important; }
@@ -246,7 +252,7 @@ section[data-testid="stSidebar"] { display: none !important; }
 .corpus-chip.err { color: var(--red-text); }
 
 /* ── Page intro ────────────────────────────────────────────────────────────── */
-.page-intro { margin-bottom: 20px; animation: fadeUp .3s ease both; }
+.page-intro { margin: 0 0 20px !important; animation: fadeUp .3s ease both; }
 .page-intro h2 {
     font-size: 22px; font-weight: 800; color: var(--navy);
     margin: 0 0 5px; letter-spacing: -.4px;
