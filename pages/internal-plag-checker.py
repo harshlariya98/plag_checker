@@ -806,6 +806,14 @@ def _load_from_disk(key):
     texts = joblib.load(texts_path) if os.path.exists(texts_path) else None
     return vec, mat, urls, texts
 
+@st.cache_resource(show_spinner=False)
+def _get_corpus_index():
+    """Load corpus index once into server memory, shared across all sessions."""
+    key = _cache_key()
+    if _disk_cache_exists(key):
+        return _load_from_disk(key)
+    return None, None, None, None
+
 def _save_to_disk(key, vec, mat, urls, texts=None):
     joblib.dump(vec,  os.path.join(CACHE_DIR, f"{key}.vec.pkl"))
     save_npz(         os.path.join(CACHE_DIR, f"{key}.mat.npz"), mat)
@@ -818,23 +826,13 @@ def _ensure_corpus_index():
     if "corpus_urls" in st.session_state:
         return
 
-    key = _cache_key()
-
-    if _disk_cache_exists(key):
-        with st.spinner("Loading index from disk…"):
-            vec, mat, urls, texts = _load_from_disk(key)
+    # Try server-level cache first (instant after first load)
+    vec, mat, urls, texts = _get_corpus_index()
+    if urls is not None:
         st.session_state["corpus_urls"]   = urls
         st.session_state["corpus_vec"]    = vec
         st.session_state["corpus_mat"]    = mat
         st.session_state["corpus_texts"]  = texts
-        # one-time migration: build texts.pkl if it didn't exist yet
-        if texts is None:
-            texts_path = os.path.join(CACHE_DIR, f"{key}.texts.pkl")
-            with st.spinner("Building phrase index (one-time)…"):
-                _df = load_corpus(CORPUS_PATH)
-                short = _vectorized_strip(_df["description"]).tolist()
-                joblib.dump(short, texts_path)
-            st.session_state["corpus_texts"] = short
         return
 
     # ── first-time build ──────────────────────────────────────────────────────
