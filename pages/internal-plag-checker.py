@@ -154,7 +154,7 @@ html, body, [class*="css"] {
     background: var(--bg) !important;
     color: var(--text) !important;
 }
-.block-container { padding: 4.5rem 2rem 4rem !important; max-width: 1440px !important; }
+.block-container { padding: 4rem 2rem 4rem !important; max-width: 1440px !important; }
 /* Collapse any flow-space left by the fixed header's markdown wrapper */
 div[data-testid="stMarkdown"]:has(.app-header) {
     height: 0 !important; overflow: visible !important;
@@ -285,21 +285,21 @@ section[data-testid="stSidebar"] { display: none !important; }
 .nav-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; animation: pulse 1.8s ease infinite; }
 
 /* ── Page intro ────────────────────────────────────────────────────────────── */
-.page-intro { margin: 0 0 20px !important; animation: fadeUp .3s ease both; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.page-intro { margin: 0 0 12px !important; animation: fadeUp .3s ease both; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .page-intro-text { flex: 1; min-width: 220px; }
 .page-intro h2 {
-    font-size: 22px; font-weight: 800; color: var(--navy);
-    margin: 0 0 4px; letter-spacing: -.5px;
+    font-size: 18px; font-weight: 800; color: var(--navy);
+    margin: 0 0 2px; letter-spacing: -.4px;
 }
-.page-intro p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+.page-intro p { font-size: 12px; color: var(--muted); margin: 0; line-height: 1.5; }
 .page-intro-badge {
     display: inline-flex; align-items: center; gap: 6px;
     background: var(--blue-bg); border: 1px solid var(--blue-border);
-    border-radius: var(--radius-sm); padding: 6px 12px;
+    border-radius: var(--radius-sm); padding: 5px 11px;
     font-size: 11px; font-weight: 700; color: var(--blue-text);
     white-space: nowrap; flex-shrink: 0;
 }
-.page-intro-badge strong { font-size: 14px; color: var(--blue); }
+.page-intro-badge strong { font-size: 13px; color: var(--blue); }
 .pib-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.8s ease infinite; flex-shrink: 0; }
 
 /* ── Panel card (Streamlit bordered container) ─────────────────────────────── */
@@ -383,19 +383,19 @@ div[data-testid="stExpander"] > div[data-testid="stExpanderDetails"] {
 /* Upload success state */
 .upload-ok {
     background: var(--green-bg); border: 1px solid var(--green-border);
-    border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 10px;
+    border-radius: var(--radius-sm); padding: 8px 12px; margin-top: 8px;
     animation: fadeUp .3s ease both;
 }
-.upload-ok-row { display: flex; gap: 16px; margin-bottom: 10px; }
-.upload-stat { display: flex; flex-direction: column; gap: 1px; }
-.upload-big { font-size: 20px; font-weight: 800; color: var(--navy); line-height: 1.1; letter-spacing: -.4px; }
+.upload-ok-row { display: flex; gap: 20px; margin-bottom: 6px; align-items: center; }
+.upload-stat { display: flex; flex-direction: column; gap: 0; }
+.upload-big { font-size: 17px; font-weight: 800; color: var(--navy); line-height: 1.15; letter-spacing: -.3px; }
 .upload-big.green { color: var(--green); }
 .upload-big.amber { color: #D97706; }
-.upload-lbl { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
-.upload-cov-bar-wrap { height: 5px; background: var(--green-border); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
-.upload-cov-bar { height: 5px; background: var(--green); border-radius: 99px; transition: width .4s ease; }
-.upload-cov-lbl { font-size: 10.5px; color: var(--green-text); font-weight: 600; }
-.upload-warn { font-size: 10.5px; color: #D97706; font-weight: 600; margin-top: 6px; }
+.upload-lbl { font-size: 9.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.upload-cov-bar-wrap { height: 4px; background: var(--green-border); border-radius: 99px; overflow: hidden; margin-bottom: 3px; }
+.upload-cov-bar { height: 4px; background: var(--green); border-radius: 99px; transition: width .4s ease; }
+.upload-cov-lbl { font-size: 10px; color: var(--green-text); font-weight: 600; }
+.upload-warn { font-size: 10px; color: #D97706; font-weight: 600; margin-top: 4px; }
 
 /* ── Tabs (replacing radio) ────────────────────────────────────────────────── */
 div[data-testid="stTabs"] [data-testid="stTabsContainer"] {
@@ -447,10 +447,10 @@ div[data-testid="stFileUploader"]:hover {
 .schema-hint { font-size: 11.5px; color: var(--muted); margin: 4px 0 0; line-height: 1.55; }
 
 /* ── Pre-run stat row ──────────────────────────────────────────────────────── */
-.info-row { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
+.info-row { display: flex; gap: 8px; margin: 10px 0 8px; flex-wrap: wrap; }
 .info-tile {
-    flex: 1; min-width: 80px; background: var(--surface);
-    border-radius: var(--radius-sm); padding: 14px 10px 12px;
+    flex: 1; min-width: 72px; background: var(--surface);
+    border-radius: var(--radius-sm); padding: 10px 8px 8px;
     border: 1px solid var(--border);
     border-top: 3px solid var(--border);
     text-align: center;
@@ -463,12 +463,12 @@ div[data-testid="stFileUploader"]:hover {
 .info-tile.amber  { border-top-color: var(--amber);  }
 .info-tile.purple { border-top-color: var(--purple); }
 .info-tile.green  { border-top-color: var(--green);  }
-.info-val { font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1; letter-spacing: -.6px; }
+.info-val { font-size: 18px; font-weight: 800; color: var(--navy); line-height: 1; letter-spacing: -.4px; }
 .info-tile.blue   .info-val { color: var(--blue);   }
 .info-tile.amber  .info-val { color: #D97706;        }
 .info-tile.purple .info-val { color: var(--purple);  }
 .info-tile.green  .info-val { color: var(--green);   }
-.info-lbl { font-size: 10.5px; color: var(--muted); font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; }
+.info-lbl { font-size: 9.5px; color: var(--muted); font-weight: 600; margin-top: 3px; text-transform: uppercase; letter-spacing: .04em; }
 
 /* ── Summary stat tiles ────────────────────────────────────────────────────── */
 .stat-row { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
@@ -1119,7 +1119,7 @@ if True:
 
         with tab_url:
             pasted = st.text_area(
-                "One URL per line", height=140,
+                "One URL per line", height=120,
                 placeholder="https://www.kollegeapply.com/article/…\nhttps://…",
             )
             if pasted.strip():
@@ -1131,257 +1131,244 @@ if True:
                 else:
                     st.error("No valid URLs found. Each line should start with http.")
 
-    # ── Section 2: Run ────────────────────────────────────────────────────────
-    if new_df is not None and len(new_df) > 0:
-        with st.container(border=True):
-            _panel_hd("2", "Ready to run", "review before launching", color="coral")
-
+        # ── Run controls — inline inside same card ────────────────────────────
+        if new_df is not None and len(new_df) > 0:
+            st.divider()
             n_new   = len(new_df)
             n_fetch = int((new_df["description"].str.strip().str.len() <= 10).sum())
             est_sec = n_new * 0.5 + n_fetch * 4
             if run_web:
                 est_sec += n_new * n_passages * 5
-
             est_label = (f"~{max(1,round(est_sec/60))} min" if est_sec > 60
                          else f"~{int(est_sec)}s")
-            st.markdown(
-                f'<div class="info-row">'
-                f'<div class="info-tile blue"><div class="info-val">{n_new}</div><div class="info-lbl">Articles</div></div>'
-                f'<div class="info-tile green"><div class="info-val">{n_corp:,}</div><div class="info-lbl">Corpus size</div></div>'
-                f'<div class="info-tile amber"><div class="info-val">{n_fetch}</div><div class="info-lbl">To fetch</div></div>'
-                f'<div class="info-tile purple"><div class="info-val">{est_label}</div><div class="info-lbl">Est. time</div></div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+
+            run_left, run_right = st.columns([3, 1], vertical_alignment="bottom")
+            with run_left:
+                st.markdown(
+                    f'<div class="info-row">'
+                    f'<div class="info-tile blue"><div class="info-val">{n_new}</div><div class="info-lbl">Articles</div></div>'
+                    f'<div class="info-tile green"><div class="info-val">{n_corp:,}</div><div class="info-lbl">Corpus</div></div>'
+                    f'<div class="info-tile amber"><div class="info-val">{n_fetch}</div><div class="info-lbl">To fetch</div></div>'
+                    f'<div class="info-tile purple"><div class="info-val">{est_label}</div><div class="info-lbl">Est. time</div></div>'
+                    f'</div>',
+                    unsafe_allow_html=True,
+                )
+            with run_right:
+                run_btn = st.button("→  Run check", type="primary",
+                                    use_container_width=True, key="run_btn")
 
             if n_fetch > 0:
                 callout(
-                    f"<b>{n_fetch} article{'s' if n_fetch>1 else ''}</b> missing HTML content — "
-                    "will be fetched live (slower). Add a <code>description</code> column to skip this.",
+                    f"<b>{n_fetch} article{'s' if n_fetch>1 else ''}</b> will be fetched live — add a <code>description</code> column to speed this up.",
                     kind="warn", icon="⚡",
                 )
 
-            run_btn = st.button("→  Run plagiarism check", type="primary",
-                                use_container_width=True, key="run_btn")
+            if run_btn:
+                # Clear cached page text for these URLs so re-runs pick up live changes
+                clear_page_cache(new_df["url"].tolist())
 
-        if run_btn:
-            # Clear cached page text for these URLs so re-runs pick up live changes
-            clear_page_cache(new_df["url"].tolist())
-
-            # prepare new articles
-            with st.status("📥 Preparing articles…", expanded=True) as s2:
-                prog = st.progress(0.0)
-                cur  = st.empty()
-                new_texts, new_wc = [], []
-                for i, row in enumerate(new_df.itertuples(), 1):
-                    cur.markdown(
-                        f'<p style="font-size:.82rem;color:#6B7280;margin:0;">'
-                        f'<b>{i}/{n_new}</b> &nbsp;·&nbsp; {row.url}</p>',
-                        unsafe_allow_html=True,
-                    )
-                    desc = str(row.description).strip()
-                    text = _fast_strip(desc) if len(desc) > 10 else fetch_text(row.url)
-                    new_texts.append(text)
-                    new_wc.append(len(text.split()))
-                    prog.progress(i / n_new)
-                cur.empty()
-                s2.update(label=f"✅ {n_new} articles ready",
-                          state="complete", expanded=False)
-
-            # ── Multi-signal similarity (Copyscape / Turnitin style) ─────────────
-            _sem_label = " + semantic" if _EMBED_AVAILABLE else ""
-            with st.status(f"⚡ Computing similarity{_sem_label}…", expanded=False) as s3:
-                valid_new   = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
-                # tuple: (tfidf_sc, corpus_idx, oov_ratio, copy_score, matched_sents)
-                sim_results = [(0.0, 0, 0.0, 0.0, 0)] * n_new
-
-                corpus_vocab = set(corpus_vec.vocabulary_.keys())
-                _stop = corpus_vec.get_stop_words() or set()
-
-                def _norm_url(u):
-                    return str(u).strip().lower().rstrip("/")
-
-                def _oov_ratio(text):
-                    tokens = re.findall(r'\b[a-z]{3,}\b', text.lower())
-                    tokens = [t for t in tokens if t not in _stop]
-                    if not tokens: return 0.0
-                    oov = sum(1 for t in tokens if t not in corpus_vocab)
-                    return round(oov / len(tokens) * 100, 1)
-
-                def _words(text):
-                    return re.findall(r'\b[a-z]{2,}\b', text.lower())
-
-                def _jaccard_words(wa, wb, k):
-                    if len(wa) < k or len(wb) < k:
-                        return 0.0
-                    sa = set(zip(*[wa[i:] for i in range(k)]))
-                    sb = set(zip(*[wb[i:] for i in range(k)]))
-                    inter = len(sa & sb)
-                    union = len(sa | sb)
-                    return inter / union if union else 0.0
-
-                def _shingle_jaccard(text_a, text_b):
-                    """Dual k=4 + k=5 shingle Jaccard. Returns % of best signal."""
-                    wa, wb = _words(text_a), _words(text_b)
-                    j5 = _jaccard_words(wa, wb, 5)
-                    j4 = _jaccard_words(wa, wb, 4)
-                    return round(max(j4 * 0.85, j5) * 100, 1)
-
-                def _paragraph_jaccard(new_text, corp_text):
-                    """Split both texts into paragraphs; return the highest paragraph-pair
-                    Jaccard. Catches partial copies where only one section is lifted."""
-                    def _paras(t):
-                        chunks = re.split(r'\n{2,}|(?<=[.!?])\s{2,}', t)
-                        return [c.strip() for c in chunks if len(c.split()) >= 25]
-                    new_paras  = _paras(new_text)
-                    corp_paras = _paras(corp_text)
-                    if not new_paras or not corp_paras:
-                        return 0.0
-                    best = 0.0
-                    for np_ in new_paras:
-                        wn = _words(np_)
-                        for cp in corp_paras:
-                            wc_ = _words(cp)
-                            j = _jaccard_words(wn, wc_, 5)
-                            if j > best:
-                                best = j
-                    return round(best * 100, 1)
-
-                def _verbatim_sentences(new_text, corp_text, min_words=8):
-                    corp_norm = re.sub(r'\s+', ' ', corp_text.lower())
-                    count = 0
-                    for sent in re.split(r'(?<=[.!?])\s+|\n', new_text):
-                        s = re.sub(r'\s+', ' ', sent.lower().strip())
-                        if len(s.split()) >= min_words and s in corp_norm:
-                            count += 1
-                    return count
-
-                import numpy as np_mod
-                TOP_K = 15  # check against top-15 TF-IDF candidates
-
-                if valid_new and corpus_mat.shape[0] > 0:
-                    vt      = [t for _, t in valid_new]
-                    new_mat = corpus_vec.transform(vt)
-                    sims    = cosine_similarity(new_mat, corpus_mat)
-                    corpus_url_idx = {_norm_url(u): i for i, u in enumerate(corpus_urls)}
-
-                    for ni, (orig_i, t) in enumerate(valid_new):
-                        row_url = _norm_url(new_df.iloc[orig_i]["url"])
-                        scores  = sims[ni].copy()
-                        if row_url in corpus_url_idx:
-                            scores[corpus_url_idx[row_url]] = -1.0
-
-                        best_j  = int(scores.argmax())
-                        best_sc = round(float(scores[best_j]) * 100, 1)
-
-                        copy_sc = 0.0
-                        matched_sents = 0
-                        if corpus_texts is not None:
-                            k_size   = min(TOP_K, len(scores))
-                            top_idxs = np_mod.argpartition(scores, -k_size)[-k_size:]
-                            for cj in top_idxs:
-                                ct = corpus_texts[int(cj)]
-                                if not ct:
-                                    continue
-                                # Full-text dual-gram Jaccard
-                                js = _shingle_jaccard(t, ct)
-                                # Paragraph-level max (catches partial section copies)
-                                pj = _paragraph_jaccard(t, ct)
-                                best_pair = max(js, pj)
-                                if best_pair > copy_sc:
-                                    copy_sc = best_pair
-                                    matched_sents = _verbatim_sentences(t, ct)
-
-                        # Semantic similarity boost (sentence-transformers, optional)
-                        # Runs only when embeddings are available and phrase signals are
-                        # ambiguous (copy_sc in 8–30%: could be paraphrase or false positive).
-                        if _EMBED_AVAILABLE and _EMBEDDER is not None and corpus_texts is not None:
-                            if 8.0 <= copy_sc <= 30.0:
-                                try:
-                                    import numpy as _np2
-                                    best_j_txt = corpus_texts[best_j] or ""
-                                    if best_j_txt:
-                                        t_trunc  = t[:3000]
-                                        ct_trunc = best_j_txt[:3000]
-                                        embs = _EMBEDDER.encode(
-                                            [t_trunc, ct_trunc],
-                                            normalize_embeddings=True,
-                                            show_progress_bar=False,
-                                        )
-                                        sem_sc = float(_np2.dot(embs[0], embs[1])) * 100
-                                        # Semantic score blends in at 30% weight when
-                                        # phrase signal is in the ambiguous zone.
-                                        copy_sc = round(copy_sc * 0.70 + sem_sc * 0.30, 1)
-                                except Exception:
-                                    pass
-
-                        sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t),
-                                               copy_sc, matched_sents)
-                s3.update(label="⚡ Similarity computed", state="complete")
-
-            # optional web check
-            web_res = {}
-            if run_web:
-                excl = {d.strip().lower() for d in excl_domains.splitlines() if d.strip()}
-                excl.add(own_domain.strip().lower().replace("www.", ""))
-                with st.status(f"🌐 Web check — {n_new} articles…", expanded=True) as sw:
-                    wp = st.progress(0.0)
-                    wt = st.empty()
-                    for i, (row, txt) in enumerate(zip(new_df.itertuples(), new_texts), 1):
-                        wt.markdown(
-                            f'<p style="font-size:.83rem;color:#6B7280;margin:0;">'
-                            f'{i}/{n_new} &nbsp;·&nbsp; {row.url}</p>',
+                # prepare new articles
+                with st.status("📥 Preparing articles…", expanded=True) as s2:
+                    prog = st.progress(0.0)
+                    cur  = st.empty()
+                    new_texts, new_wc = [], []
+                    for i, row in enumerate(new_df.itertuples(), 1):
+                        cur.markdown(
+                            f'<p style="font-size:.82rem;color:#6B7280;margin:0;">'
+                            f'<b>{i}/{n_new}</b> &nbsp;·&nbsp; {row.url}</p>',
                             unsafe_allow_html=True,
                         )
-                        try:
-                            res, _ = check_article(row.url, n_passages, web_thresh,
-                                                   excl, 25, preloaded_text=txt)
-                        except Exception as e:
-                            res = {"plagiarism_score": None, "verdict": f"Error: {e}",
-                                   "top_sources": "", "matches": []}
-                        web_res[row.url] = res
-                        wp.progress(i / n_new)
-                    wt.empty()
-                    sw.update(label="🌐 Web check complete", state="complete", expanded=False)
+                        desc = str(row.description).strip()
+                        text = _fast_strip(desc) if len(desc) > 10 else fetch_text(row.url)
+                        new_texts.append(text)
+                        new_wc.append(len(text.split()))
+                        prog.progress(i / n_new)
+                    cur.empty()
+                    s2.update(label=f"✅ {n_new} articles ready",
+                              state="complete", expanded=False)
 
-            # assemble
-            final_rows = []
-            for row, txt, wc, (tfidf_sc, ci, oov, copy_sc, msents) in zip(
-                new_df.itertuples(), new_texts, new_wc, sim_results
-            ):
-                corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
-                wr       = web_res.get(row.url, {})
-                cls, vlabel = verdict_for(copy_sc, tfidf_sc, dup_threshold, similar_topic_threshold)[:2]
-                final_rows.append({
-                    "url":                    row.url,
-                    "word_count":             wc,
-                    "copy_score_%":           copy_sc,
-                    "topic_overlap_%":        tfidf_sc,
-                    "matched_sentences":      msents,
-                    "new_vocab_%":            oov,
-                    "verdict":                vlabel,
-                    "matched_existing_url":   corp_url,
-                    "web_plag_score":         wr.get("plagiarism_score"),
-                    "web_verdict":            wr.get("verdict", ""),
-                    "top_web_sources":        wr.get("top_sources", ""),
-                    "_matches":               wr.get("matches", []),
-                })
+                # ── Multi-signal similarity (Copyscape / Turnitin style) ─────────────
+                _sem_label = " + semantic" if _EMBED_AVAILABLE else ""
+                with st.status(f"⚡ Computing similarity{_sem_label}…", expanded=False) as s3:
+                    valid_new   = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
+                    # tuple: (tfidf_sc, corpus_idx, oov_ratio, copy_score, matched_sents)
+                    sim_results = [(0.0, 0, 0.0, 0.0, 0)] * n_new
 
-            st.session_state["results"] = final_rows
-            st.rerun()
+                    corpus_vocab = set(corpus_vec.vocabulary_.keys())
+                    _stop = corpus_vec.get_stop_words() or set()
 
-    else:
-        if new_df is None:
-            st.markdown(
-                '<div class="empty-state">'
-                '<div class="es-icon">📂</div>'
-                '<div class="es-title">Ready to check your content</div>'
-                '<div class="es-sub">Upload a CSV with a <code>url</code> column, '
-                'or paste article URLs above to get started.<br>'
-                'Supports up to 200 MB CSV files.</div>'
-                '</div>',
-                unsafe_allow_html=True,
-            )
+                    def _norm_url(u):
+                        return str(u).strip().lower().rstrip("/")
+
+                    def _oov_ratio(text):
+                        tokens = re.findall(r'\b[a-z]{3,}\b', text.lower())
+                        tokens = [t for t in tokens if t not in _stop]
+                        if not tokens: return 0.0
+                        oov = sum(1 for t in tokens if t not in corpus_vocab)
+                        return round(oov / len(tokens) * 100, 1)
+
+                    def _words(text):
+                        return re.findall(r'\b[a-z]{2,}\b', text.lower())
+
+                    def _jaccard_words(wa, wb, k):
+                        if len(wa) < k or len(wb) < k:
+                            return 0.0
+                        sa = set(zip(*[wa[i:] for i in range(k)]))
+                        sb = set(zip(*[wb[i:] for i in range(k)]))
+                        inter = len(sa & sb)
+                        union = len(sa | sb)
+                        return inter / union if union else 0.0
+
+                    def _shingle_jaccard(text_a, text_b):
+                        """Dual k=4 + k=5 shingle Jaccard. Returns % of best signal."""
+                        wa, wb = _words(text_a), _words(text_b)
+                        j5 = _jaccard_words(wa, wb, 5)
+                        j4 = _jaccard_words(wa, wb, 4)
+                        return round(max(j4 * 0.85, j5) * 100, 1)
+
+                    def _paragraph_jaccard(new_text, corp_text):
+                        """Split both texts into paragraphs; return the highest paragraph-pair
+                        Jaccard. Catches partial copies where only one section is lifted."""
+                        def _paras(t):
+                            chunks = re.split(r'\n{2,}|(?<=[.!?])\s{2,}', t)
+                            return [c.strip() for c in chunks if len(c.split()) >= 25]
+                        new_paras  = _paras(new_text)
+                        corp_paras = _paras(corp_text)
+                        if not new_paras or not corp_paras:
+                            return 0.0
+                        best = 0.0
+                        for np_ in new_paras:
+                            wn = _words(np_)
+                            for cp in corp_paras:
+                                wc_ = _words(cp)
+                                j = _jaccard_words(wn, wc_, 5)
+                                if j > best:
+                                    best = j
+                        return round(best * 100, 1)
+
+                    def _verbatim_sentences(new_text, corp_text, min_words=8):
+                        corp_norm = re.sub(r'\s+', ' ', corp_text.lower())
+                        count = 0
+                        for sent in re.split(r'(?<=[.!?])\s+|\n', new_text):
+                            s = re.sub(r'\s+', ' ', sent.lower().strip())
+                            if len(s.split()) >= min_words and s in corp_norm:
+                                count += 1
+                        return count
+
+                    import numpy as np_mod
+                    TOP_K = 15  # check against top-15 TF-IDF candidates
+
+                    if valid_new and corpus_mat.shape[0] > 0:
+                        vt      = [t for _, t in valid_new]
+                        new_mat = corpus_vec.transform(vt)
+                        sims    = cosine_similarity(new_mat, corpus_mat)
+                        corpus_url_idx = {_norm_url(u): i for i, u in enumerate(corpus_urls)}
+
+                        for ni, (orig_i, t) in enumerate(valid_new):
+                            row_url = _norm_url(new_df.iloc[orig_i]["url"])
+                            scores  = sims[ni].copy()
+                            if row_url in corpus_url_idx:
+                                scores[corpus_url_idx[row_url]] = -1.0
+
+                            best_j  = int(scores.argmax())
+                            best_sc = round(float(scores[best_j]) * 100, 1)
+
+                            copy_sc = 0.0
+                            matched_sents = 0
+                            if corpus_texts is not None:
+                                k_size   = min(TOP_K, len(scores))
+                                top_idxs = np_mod.argpartition(scores, -k_size)[-k_size:]
+                                for cj in top_idxs:
+                                    ct = corpus_texts[int(cj)]
+                                    if not ct:
+                                        continue
+                                    # Full-text dual-gram Jaccard
+                                    js = _shingle_jaccard(t, ct)
+                                    # Paragraph-level max (catches partial section copies)
+                                    pj = _paragraph_jaccard(t, ct)
+                                    best_pair = max(js, pj)
+                                    if best_pair > copy_sc:
+                                        copy_sc = best_pair
+                                        matched_sents = _verbatim_sentences(t, ct)
+
+                            # Semantic similarity boost (sentence-transformers, optional)
+                            # Runs only when embeddings are available and phrase signals are
+                            # ambiguous (copy_sc in 8–30%: could be paraphrase or false positive).
+                            if _EMBED_AVAILABLE and _EMBEDDER is not None and corpus_texts is not None:
+                                if 8.0 <= copy_sc <= 30.0:
+                                    try:
+                                        import numpy as _np2
+                                        best_j_txt = corpus_texts[best_j] or ""
+                                        if best_j_txt:
+                                            t_trunc  = t[:3000]
+                                            ct_trunc = best_j_txt[:3000]
+                                            embs = _EMBEDDER.encode(
+                                                [t_trunc, ct_trunc],
+                                                normalize_embeddings=True,
+                                                show_progress_bar=False,
+                                            )
+                                            sem_sc = float(_np2.dot(embs[0], embs[1])) * 100
+                                            # Semantic score blends in at 30% weight when
+                                            # phrase signal is in the ambiguous zone.
+                                            copy_sc = round(copy_sc * 0.70 + sem_sc * 0.30, 1)
+                                    except Exception:
+                                        pass
+
+                            sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t),
+                                                   copy_sc, matched_sents)
+                    s3.update(label="⚡ Similarity computed", state="complete")
+
+                # optional web check
+                web_res = {}
+                if run_web:
+                    excl = {d.strip().lower() for d in excl_domains.splitlines() if d.strip()}
+                    excl.add(own_domain.strip().lower().replace("www.", ""))
+                    with st.status(f"🌐 Web check — {n_new} articles…", expanded=True) as sw:
+                        wp = st.progress(0.0)
+                        wt = st.empty()
+                        for i, (row, txt) in enumerate(zip(new_df.itertuples(), new_texts), 1):
+                            wt.markdown(
+                                f'<p style="font-size:.83rem;color:#6B7280;margin:0;">'
+                                f'{i}/{n_new} &nbsp;·&nbsp; {row.url}</p>',
+                                unsafe_allow_html=True,
+                            )
+                            try:
+                                res, _ = check_article(row.url, n_passages, web_thresh,
+                                                       excl, 25, preloaded_text=txt)
+                            except Exception as e:
+                                res = {"plagiarism_score": None, "verdict": f"Error: {e}",
+                                       "top_sources": "", "matches": []}
+                            web_res[row.url] = res
+                            wp.progress(i / n_new)
+                        wt.empty()
+                        sw.update(label="🌐 Web check complete", state="complete", expanded=False)
+
+                # assemble
+                final_rows = []
+                for row, txt, wc, (tfidf_sc, ci, oov, copy_sc, msents) in zip(
+                    new_df.itertuples(), new_texts, new_wc, sim_results
+                ):
+                    corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
+                    wr       = web_res.get(row.url, {})
+                    cls, vlabel = verdict_for(copy_sc, tfidf_sc, dup_threshold, similar_topic_threshold)[:2]
+                    final_rows.append({
+                        "url":                    row.url,
+                        "word_count":             wc,
+                        "copy_score_%":           copy_sc,
+                        "topic_overlap_%":        tfidf_sc,
+                        "matched_sentences":      msents,
+                        "new_vocab_%":            oov,
+                        "verdict":                vlabel,
+                        "matched_existing_url":   corp_url,
+                        "web_plag_score":         wr.get("plagiarism_score"),
+                        "web_verdict":            wr.get("verdict", ""),
+                        "top_web_sources":        wr.get("top_sources", ""),
+                        "_matches":               wr.get("matches", []),
+                    })
+
+                st.session_state["results"] = final_rows
+                st.rerun()
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
