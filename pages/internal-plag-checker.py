@@ -710,6 +710,50 @@ def smart_col(df, candidates):
             return lower[c]
     return None
 
+def _detect_url_col(df):
+    """Return the column most likely to contain URLs by sampling cell values."""
+    for col in df.columns:
+        sample = df[col].dropna().astype(str).head(20)
+        if len(sample) == 0:
+            continue
+        http_frac = sample.str.strip().str.startswith("http").mean()
+        if http_frac >= 0.5:
+            return col
+    return None
+
+def _detect_desc_col(df, url_col):
+    """Return the column most likely to contain article body text/HTML."""
+    best_col, best_len = None, 0
+    for col in df.columns:
+        if col == url_col:
+            continue
+        sample = df[col].dropna().astype(str).head(20)
+        if len(sample) == 0:
+            continue
+        avg_len = sample.str.len().mean()
+        if avg_len > best_len and avg_len >= 100:
+            best_len, best_col = avg_len, col
+    return best_col
+
+def normalise_new(df):
+    # 1. Name-based match first
+    url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
+    desc_col = smart_col(df, ["description","content","article","body","html",
+                               "article_html","text","article_body"])
+    # 2. Content-based fallback
+    if not url_col:
+        url_col = _detect_url_col(df)
+    if not desc_col and url_col:
+        desc_col = _detect_desc_col(df, url_col)
+    if not url_col:
+        return None, f"No URL column found. Columns: {list(df.columns)}"
+    rename = {url_col: "url"}
+    if desc_col: rename[desc_col] = "description"
+    df = df.rename(columns=rename)
+    if "description" not in df.columns: df["description"] = ""
+    return df[["url","description"] +
+               [c for c in df.columns if c not in ("url","description")]].copy(), None
+
 def verdict_for(copy_score, topic_score, threshold, similar_topic_threshold=None):
     """
     copy_score              = 5-word shingle Jaccard % (primary)
@@ -1043,19 +1087,13 @@ if True:
                 if raw_new is not None:
                     df2, err2 = normalise_new(raw_new)
                     if err2:
-                        st.warning(f"🤔 Column mapping needed — {err2}")
-                        mc1, mc2 = st.columns(2)
-                        url_c  = mc1.selectbox("URL column",
-                                               ["(none)"] + list(raw_new.columns), key="nu")
-                        desc_c = mc2.selectbox("Description column",
-                                               ["(none)"] + list(raw_new.columns), key="nd")
-                        rename = {}
-                        if url_c  != "(none)": rename[url_c]  = "url"
-                        if desc_c != "(none)": rename[desc_c] = "description"
-                        df2 = raw_new.rename(columns=rename)
-                        if "url" not in df2.columns:
-                            df2["url"] = [f"article_{i+1}" for i in range(len(df2))]
-                        if "description" not in df2.columns: df2["description"] = ""
+                        alert_strip(
+                            f"Could not find a URL column. "
+                            f"Make sure your CSV has a column whose values start with <code>http</code>. "
+                            f"Columns found: {', '.join(f'<code>{c}</code>' for c in raw_new.columns)}",
+                            kind="danger", icon="❌",
+                        )
+                        df2 = None
                     new_df = df2
                     if new_df is not None:
                         new_df["url"]         = new_df["url"].astype(str).str.strip()
