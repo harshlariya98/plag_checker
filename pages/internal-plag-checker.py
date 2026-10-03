@@ -532,6 +532,68 @@ section[data-testid="stSidebar"] .stSlider > div > div > div { background: var(-
 .build-step-title { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
 .eta-label { font-size: 12px; color: var(--muted); margin: 2px 0 0; }
 .detail-label { font-size: 11px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: #94A3B8; margin: 20px 0 8px; }
+
+/* ── Verdict guide ─────────────────────────────────────────────────────────── */
+.vguide { display: flex; gap: 10px; flex-wrap: wrap; margin: 0 0 20px; }
+.vg-item { flex: 1; min-width: 140px; border-radius: var(--radius-sm); padding: 12px 14px; border: 1px solid var(--border); }
+.vg-item.ok     { background: var(--green-bg);  border-color: var(--green-border); }
+.vg-item.info   { background: var(--blue-bg);   border-color: var(--blue-border);  }
+.vg-item.warn   { background: var(--amber-bg);  border-color: #FDE68A;             }
+.vg-item.danger { background: var(--red-bg);    border-color: #FECACA;             }
+.vg-head { display: flex; align-items: center; gap: 7px; margin-bottom: 5px; }
+.vg-dot  { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+.vg-dot.ok { background: var(--green); } .vg-dot.info { background: var(--blue); }
+.vg-dot.warn { background: #F59E0B; }   .vg-dot.danger { background: var(--red); }
+.vg-title { font-size: 12px; font-weight: 700; }
+.vg-item.ok .vg-title     { color: var(--green); }
+.vg-item.info .vg-title   { color: var(--blue);  }
+.vg-item.warn .vg-title   { color: #D97706;       }
+.vg-item.danger .vg-title { color: var(--red);    }
+.vg-action { font-size: 12.5px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+.vg-desc  { font-size: 11px; color: var(--muted); line-height: 1.45; }
+
+/* ── Article result cards ──────────────────────────────────────────────────── */
+.art-card { border: 1px solid var(--border); border-radius: var(--radius-sm); margin: 6px 0;
+            background: #fff; overflow: hidden; transition: box-shadow .15s; }
+.art-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+.art-card.danger { border-left: 4px solid var(--red);  }
+.art-card.warn   { border-left: 4px solid #F59E0B;     }
+.art-card.info   { border-left: 4px solid var(--blue); }
+.art-card.ok     { border-left: 4px solid var(--green);}
+.art-row { display: flex; align-items: center; gap: 16px; padding: 12px 16px; flex-wrap: wrap; }
+.art-url-block { flex: 2; min-width: 160px; }
+.art-url  { font-size: 12.5px; font-weight: 600; color: var(--blue); text-decoration: none;
+            overflow-wrap: break-word; word-break: break-all; line-height: 1.4; }
+.art-url:hover { text-decoration: underline; }
+.art-wc   { font-size: 10.5px; color: var(--muted); margin-top: 2px; }
+.art-scores { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.art-metric { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 54px; }
+.art-metric-val { font-size: 15px; font-weight: 800; line-height: 1; }
+.art-metric-lbl { font-size: 9.5px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.art-meter-bg { width: 48px; height: 4px; background: var(--border); border-radius: 99px; overflow: hidden; margin-top: 2px; }
+.art-meter-fill { height: 4px; border-radius: 99px; }
+.art-verdict-col { flex-shrink: 0; min-width: 120px; }
+.art-vbadge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px;
+              border-radius: 99px; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+.art-vbadge.danger { background: var(--red-bg);   color: var(--red);   border: 1px solid #FECACA; }
+.art-vbadge.warn   { background: var(--amber-bg); color: #B45309;      border: 1px solid #FDE68A; }
+.art-vbadge.info   { background: var(--blue-bg);  color: var(--blue);  border: 1px solid var(--blue-border); }
+.art-vbadge.ok     { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-border); }
+.art-action-col { flex: 1; min-width: 180px; }
+.art-action { font-size: 12px; font-weight: 600; line-height: 1.4; }
+.art-action.danger { color: #DC2626; } .art-action.warn { color: #B45309; }
+.art-action.info   { color: var(--blue); } .art-action.ok { color: var(--green); }
+.art-matched { font-size: 10.5px; color: var(--muted); margin-top: 3px; }
+.art-matched a { color: var(--muted); text-decoration: none; }
+.art-matched a:hover { color: var(--blue); text-decoration: underline; }
+.art-detail-body { padding: 14px 20px 16px; border-top: 1px solid var(--border);
+                   background: #FAFAFA; font-size: 12.5px; color: #374151; }
+.art-detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 24px; margin-top: 10px; }
+.art-detail-item { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px; }
+.art-detail-item .adi-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase;
+                             letter-spacing: .05em; color: #94A3B8; margin-bottom: 4px; }
+.art-detail-item .adi-val { font-size: 13px; font-weight: 700; color: var(--navy); }
+.art-detail-item .adi-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1201,103 +1263,173 @@ if results:
             kind="success", icon="🎉",
         )
 
-    # View tabs
+    # ── Verdict guide ─────────────────────────────────────────────────────────
+    st.markdown(
+        '<div class="vguide">'
+        '<div class="vg-item ok">'
+        '  <div class="vg-head"><div class="vg-dot ok"></div><span class="vg-title">Unique</span></div>'
+        '  <div class="vg-action">✅ Publish</div>'
+        '  <div class="vg-desc">No phrase overlap with existing content. Original writing — safe to go live.</div>'
+        '</div>'
+        '<div class="vg-item info">'
+        '  <div class="vg-head"><div class="vg-dot info"></div><span class="vg-title">Similar topic</span></div>'
+        '  <div class="vg-action">📝 Review differentiation</div>'
+        '  <div class="vg-desc">Same subject as a published article, but independently written. OK to publish — consider adding a unique angle.</div>'
+        '</div>'
+        '<div class="vg-item warn">'
+        '  <div class="vg-head"><div class="vg-dot warn"></div><span class="vg-title">High overlap</span></div>'
+        '  <div class="vg-action">✏️ Rewrite before publishing</div>'
+        '  <div class="vg-desc">Significant shared phrases found. Rewrite the overlapping passages, then re-check.</div>'
+        '</div>'
+        '<div class="vg-item danger">'
+        '  <div class="vg-head"><div class="vg-dot danger"></div><span class="vg-title">Duplicate</span></div>'
+        '  <div class="vg-action">🚫 Do not publish</div>'
+        '  <div class="vg-desc">Text is substantially copied from an existing article. Must be fully rewritten.</div>'
+        '</div>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
+
+    # ── View selector ──────────────────────────────────────────────────────────
     view = st.segmented_control(
-        "View", ["📋  All results", "🚨  Duplicates only", "🌐  Web plagiarism"],
+        "View", ["📋  All results", "🚨  Issues only", "🌐  Web plagiarism"],
         default="📋  All results", label_visibility="collapsed",
     ) or "📋  All results"
 
-    # ── Table + detail cards ───────────────────────────────────────────────────
-    if view in ("📋  All results", "🚨  Duplicates only"):
+    # ── Article cards ──────────────────────────────────────────────────────────
+    if view in ("📋  All results", "🚨  Issues only"):
         show = results if view == "📋  All results" else [
-            r for r in results if r["verdict"] == "Duplicate"
+            r for r in results if r["verdict"] in ("Duplicate", "High overlap", "Similar topic")
         ]
         show = sorted(show, key=lambda r: r["copy_score_%"], reverse=True)
         show = show[:int(top_n)]
 
         if not show:
             callout(
-                "No duplicates found at this threshold — you're all good! 🎉",
+                "No issues found at this threshold — you're all good! 🎉",
                 kind="ok", icon="✅",
             )
         else:
-            tdf = pd.DataFrame([{
-                "Article":          r["url"],
-                "Words":            r["word_count"],
-                "Copy score %":     r.get("copy_score_%", 0.0),
-                "Topic overlap %":  r.get("topic_overlap_%", 0.0),
-                "Matched sents":    r.get("matched_sentences", 0),
-                "New vocab %":      r.get("new_vocab_%", 0.0),
-                "Verdict":          r["verdict"],
-                "Closest existing": r["matched_existing_url"],
-            } for r in show])
+            # ── Per-article cards
+            _ACTION = {
+                "danger": ("🚫 Do not publish — text is substantially copied from an existing article.", "danger"),
+                "warn":   ("✏️ Rewrite before publishing — significant phrase overlap found.", "warn"),
+                "info":   ("📝 OK to publish — independently written. Consider adding a unique angle.", "info"),
+                "ok":     ("✅ Safe to publish — no significant phrase overlap detected.", "ok"),
+            }
+            _BADGE  = {
+                "danger": "🚨 Duplicate",
+                "warn":   "⚠️ High overlap",
+                "info":   "📝 Similar topic",
+                "ok":     "✅ Unique",
+            }
 
-            st.dataframe(
-                tdf, hide_index=True, use_container_width=True,
-                column_config={
-                    "Article":          st.column_config.LinkColumn(width="large"),
-                    "Words":            st.column_config.NumberColumn(width="small"),
-                    "Copy score %":     st.column_config.ProgressColumn(
-                        help="5-word phrase Jaccard similarity — primary copy signal. "
-                             "Measures what % of 5-word phrases in this article also appear in the matched corpus article. "
-                             "This is how Copyscape & Google detect near-duplicates. "
-                             "≥35% = significant copying; <12% = original content.",
-                        min_value=0, max_value=100, format="%.1f%%", width="small"),
-                    "Topic overlap %":  st.column_config.ProgressColumn(
-                        help="TF-IDF cosine similarity — topic context only. "
-                             "High value for articles about the same subject even when written differently. "
-                             "Use Copy score as the actual plagiarism signal.",
-                        min_value=0, max_value=100, format="%.0f%%", width="small"),
-                    "Matched sents":    st.column_config.NumberColumn(
-                        help="Number of sentences (≥8 words) that appear verbatim in the matched corpus article. "
-                             "Any non-zero value is strong evidence of direct copying.",
-                        width="small", format="%d"),
-                    "New vocab %":      st.column_config.ProgressColumn(
-                        help="% of meaningful words in this article not found anywhere in the corpus. "
-                             "High = lots of new/unique content. Low = mostly the same words as corpus.",
-                        min_value=0, max_value=100, format="%.1f%%", width="small"),
-                    "Verdict":          st.column_config.TextColumn(width="small"),
-                    "Closest existing": st.column_config.LinkColumn(width="large"),
-                },
-            )
+            def _slug(url):
+                """Return last 2 path segments of a URL as a readable label."""
+                parts = url.rstrip("/").split("/")
+                return "/".join(parts[-2:]) if len(parts) >= 2 else url
 
-            # Detail cards for flagged articles
-            flagged = [r for r in show if r["verdict"] in ("Duplicate", "High overlap")]
-            if flagged:
+            for r in show:
+                copy_sc  = r.get("copy_score_%", 0.0)
+                topic_sc = r.get("topic_overlap_%", 0.0)
+                msents   = r.get("matched_sentences", 0)
+                oov      = r.get("new_vocab_%", 0.0)
+                cls, vlabel = verdict_for(copy_sc, topic_sc, dup_threshold)[:2]
+                action_txt, action_cls = _ACTION[cls]
+                badge_lbl  = _BADGE[cls]
+                url_e   = html_module.escape(r["url"])
+                corp_u  = html_module.escape(r["matched_existing_url"], quote=True)
+                corp_ue = html_module.escape(r["matched_existing_url"])
+                corp_slug = html_module.escape(_slug(r["matched_existing_url"]))
+
+                # Copy score bar: scale 0→dup_threshold to 0→100%
+                copy_bar = min(int(copy_sc / max(dup_threshold, 1) * 100), 100)
+                # Topic bar: 0→100%
+                topic_bar = min(int(topic_sc), 100)
+
+                copy_color  = {"danger":"#DC2626","warn":"#F59E0B","info":"#408EE0","ok":"#10B981"}[cls]
+                topic_color = "#7C3AED"
+
+                sents_badge = (
+                    f'<span style="background:#FEF2F2;color:#DC2626;border:1px solid #FECACA;'
+                    f'border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-left:6px;">'
+                    f'⚠ {msents} verbatim line{"s" if msents!=1 else ""}</span>'
+                ) if msents > 0 else ""
+
                 st.markdown(
-                    '<p class="detail-label">Flagged articles — detail view</p>',
+                    f'<div class="art-card {cls}">'
+                    f'<div class="art-row">'
+                    # URL + word count
+                    f'<div class="art-url-block">'
+                    f'  <a class="art-url" href="{url_e}" target="_blank">{url_e}</a>'
+                    f'  <div class="art-wc">{r["word_count"]:,} words</div>'
+                    f'</div>'
+                    # Scores block
+                    f'<div class="art-scores">'
+                    f'  <div class="art-metric">'
+                    f'    <div class="art-metric-val" style="color:{copy_color};">{copy_sc:.1f}%</div>'
+                    f'    <div class="art-meter-bg"><div class="art-meter-fill" style="width:{copy_bar}%;background:{copy_color};"></div></div>'
+                    f'    <div class="art-metric-lbl">Copy score</div>'
+                    f'  </div>'
+                    f'  <div class="art-metric">'
+                    f'    <div class="art-metric-val" style="color:{topic_color};">{topic_sc:.0f}%</div>'
+                    f'    <div class="art-meter-bg"><div class="art-meter-fill" style="width:{topic_bar}%;background:{topic_color};"></div></div>'
+                    f'    <div class="art-metric-lbl">Topic match</div>'
+                    f'  </div>'
+                    f'  <div class="art-metric">'
+                    f'    <div class="art-metric-val" style="color:#64748B;">{oov:.0f}%</div>'
+                    f'    <div class="art-meter-bg"><div class="art-meter-fill" style="width:{min(int(oov),100)}%;background:#64748B;"></div></div>'
+                    f'    <div class="art-metric-lbl">New vocab</div>'
+                    f'  </div>'
+                    f'</div>'
+                    # Verdict badge
+                    f'<div class="art-verdict-col">'
+                    f'  <span class="art-vbadge {cls}">{badge_lbl}</span>{sents_badge}'
+                    f'</div>'
+                    # Action + matched
+                    f'<div class="art-action-col">'
+                    f'  <div class="art-action {action_cls}">{action_txt}</div>'
+                    f'  <div class="art-matched">Closest: <a href="{corp_u}" target="_blank">{corp_slug}</a></div>'
+                    f'</div>'
+                    f'</div>'
+                    f'</div>',
                     unsafe_allow_html=True,
                 )
-                for r in flagged:
-                    copy_sc  = r.get("copy_score_%", 0.0)
-                    topic_sc = r.get("topic_overlap_%", 0.0)
-                    msents   = r.get("matched_sentences", 0)
-                    cls, vlabel = verdict_for(copy_sc, topic_sc, dup_threshold)[:2]
-                    icon = "🚨" if cls == "danger" else "👀"
-                    new_e   = html_module.escape(r["url"])
-                    corp_u  = html_module.escape(r["matched_existing_url"], quote=True)
-                    corp_ue = html_module.escape(r["matched_existing_url"])
-                    bar_w   = min(int(copy_sc * 2), 100)  # scale 0-50% → 0-100px bar
-                    sents_note = f' &nbsp;·&nbsp; {msents} verbatim sentence{"s" if msents!=1 else ""}' if msents else ""
-                    st.markdown(
-                        f'<div class="rc {cls}">'
-                        f'<div class="rc-score">'
-                        f'<div class="rc-pct">{copy_sc:.0f}%</div>'
-                        f'<div style="font-size:9px;color:#9CA3AF;margin-top:2px;">copy score</div>'
-                        f'<div class="rc-bar-bg" style="margin-top:4px;"><div class="rc-bar" style="width:{bar_w}%"></div></div>'
-                        f'</div>'
-                        f'<div class="rc-body">'
-                        f'<div class="rc-label">New article</div>'
-                        f'<a href="{new_e}" target="_blank">{new_e}</a>'
-                        f'<span class="rc-badge {cls}">{icon} {vlabel}</span>'
-                        f'<div class="rc-label" style="margin-top:.6rem;">Closest match in corpus</div>'
-                        f'<a href="{corp_u}" target="_blank">{corp_ue}</a>'
-                        f'<div class="rc-meta">{r["word_count"]:,} words'
-                        f' &nbsp;·&nbsp; {copy_sc:.1f}% copy &nbsp;·&nbsp; {topic_sc:.0f}% topic overlap'
-                        f'{sents_note}</div>'
-                        f'</div></div>',
-                        unsafe_allow_html=True,
-                    )
+
+                # Expandable detail for flagged articles
+                if cls in ("danger", "warn", "info"):
+                    with st.expander(f"🔍 Detail — {_slug(r['url'])}"):
+                        st.markdown(
+                            f'<div class="art-detail-body">'
+                            f'<p style="margin:0 0 10px;font-weight:600;">Why is this flagged?</p>'
+                            f'<div class="art-detail-grid">'
+                            f'  <div class="art-detail-item">'
+                            f'    <div class="adi-lbl">Copy score (phrase Jaccard)</div>'
+                            f'    <div class="adi-val" style="color:{copy_color};">{copy_sc:.1f}%</div>'
+                            f'    <div class="adi-sub">% of 5-word phrases shared with closest article.<br>'
+                            f'    Threshold: {dup_threshold}% = Duplicate, {max(int(dup_threshold*0.4),12)}% = High overlap.</div>'
+                            f'  </div>'
+                            f'  <div class="art-detail-item">'
+                            f'    <div class="adi-lbl">Topic overlap (TF-IDF)</div>'
+                            f'    <div class="adi-val" style="color:#7C3AED;">{topic_sc:.0f}%</div>'
+                            f'    <div class="adi-sub">Vocabulary similarity — high for same-subject articles<br>even when written differently. Not a copy signal alone.</div>'
+                            f'  </div>'
+                            f'  <div class="art-detail-item">'
+                            f'    <div class="adi-lbl">Verbatim sentences matched</div>'
+                            f'    <div class="adi-val" style="color:{"#DC2626" if msents else "#10B981"};">{msents}</div>'
+                            f'    <div class="adi-sub">Sentences ≥8 words found word-for-word in the corpus article.<br>Any match is strong evidence of direct copying.</div>'
+                            f'  </div>'
+                            f'  <div class="art-detail-item">'
+                            f'    <div class="adi-lbl">New vocabulary</div>'
+                            f'    <div class="adi-val">{oov:.1f}%</div>'
+                            f'    <div class="adi-sub">Meaningful words in this article not in any corpus article.<br>High = genuinely new content; low = same vocabulary pool.</div>'
+                            f'  </div>'
+                            f'</div>'
+                            f'<p style="margin:14px 0 4px;font-weight:600;font-size:12px;">Closest existing article</p>'
+                            f'<a href="{corp_u}" target="_blank" style="color:#408EE0;font-size:12px;">{corp_ue}</a>'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
 
     # ── Web plagiarism view ────────────────────────────────────────────────────
     else:
@@ -1347,7 +1479,12 @@ if results:
     # ── Export ─────────────────────────────────────────────────────────────────
     st.divider()
     export = rdf.drop(columns=["_matches", "_text"], errors="ignore").copy()
-    export["risk_level"] = export["verdict"]  # already computed with phrase-match logic
+    export["action"] = export["verdict"].map({
+        "Duplicate":    "Do not publish — rewrite fully",
+        "High overlap": "Rewrite before publishing",
+        "Similar topic":"OK to publish — review differentiation",
+        "Unique":       "Safe to publish",
+    })
     fname = f"plag_results_{datetime.now().strftime('%Y%m%d_%H%M')}.csv"
     dl_col, cap_col = st.columns([2, 5], vertical_alignment="center")
     dl_col.download_button(
@@ -1357,7 +1494,7 @@ if results:
     )
     cap_col.markdown(
         f'<p style="font-size:.78rem;color:#94A3B8;margin:0;">'
-        f'url · words · similarity · verdict · matched_url · risk_level'
+        f'url · words · copy_score · topic_overlap · matched_sentences · new_vocab · verdict · action · matched_url'
         f'{"  ·  web_score · web_verdict · top_sources" if run_web else ""}</p>',
         unsafe_allow_html=True,
     )
