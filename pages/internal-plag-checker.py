@@ -275,7 +275,16 @@ section[data-testid="stSidebar"] { display: none !important; }
 /* ── Right: corpus status ──────────────────────────────────────────────────── */
 .app-header-right { flex-shrink: 0; }
 
-/* ── Guide button positioning — applied by JS (see st.markdown below header) ── */
+/* ── Guide button positioning + highlight animation ────────────────────────── */
+@keyframes guide-glow {
+    0%   { box-shadow: 0 0 0 0 rgba(59,130,246,.55), 0 1px 3px rgba(22,50,79,.08); }
+    55%  { box-shadow: 0 0 0 6px rgba(59,130,246,.0), 0 1px 3px rgba(22,50,79,.08); }
+    100% { box-shadow: 0 0 0 0 rgba(59,130,246,.0),  0 1px 3px rgba(22,50,79,.08); }
+}
+@keyframes guide-shimmer {
+    0%,100% { background-position: 200% center; }
+    50%      { background-position: -200% center; }
+}
 .guide-btn-in-header {
     position: fixed !important;
     top: 10px !important; right: 220px !important;
@@ -285,14 +294,22 @@ section[data-testid="stSidebar"] { display: none !important; }
 .guide-btn-in-header button {
     all: unset !important;
     display: inline-flex !important; align-items: center !important; gap: 5px !important;
-    font-size: 12px !important; font-weight: 600 !important; color: #16324f !important;
-    background: #f1f4f9 !important; border: 1px solid #d1d9e6 !important;
+    font-size: 12px !important; font-weight: 700 !important; color: #1e3a5f !important;
+    background: linear-gradient(135deg, #e8f0fe 0%, #f0f4ff 40%, #dbeafe 100%) !important;
+    border: 1.5px solid #93c5fd !important;
     border-radius: 8px !important; padding: 5px 13px !important;
-    box-shadow: 0 1px 3px rgba(22,50,79,.08) !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+    animation: guide-glow 2s ease-out infinite !important;
+    transition: background .2s, border-color .2s, transform .1s !important;
 }
-.guide-btn-in-header button:hover { background: #e4eaf3 !important; border-color: #b0bed4 !important; }
+.guide-btn-in-header button:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #e0eaff 100%) !important;
+    border-color: #60a5fa !important;
+    transform: scale(1.04) !important;
+    animation: none !important;
+    box-shadow: 0 0 0 3px rgba(59,130,246,.25), 0 2px 6px rgba(22,50,79,.12) !important;
+}
 .guide-btn-in-header button:focus { outline: none !important; }
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
