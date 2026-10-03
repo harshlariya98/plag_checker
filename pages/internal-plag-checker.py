@@ -926,23 +926,6 @@ corpus_texts = st.session_state.get("corpus_texts")   # may be None for old cach
 n_corp       = len(corpus_urls)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# Page intro
-# ─────────────────────────────────────────────────────────────────────────────
-st.markdown(
-    f'<div class="page-intro">'
-    f'<div class="page-intro-text">'
-    f'<h2>Plagiarism Checker</h2>'
-    f'<p>Catch duplicate content before publishing — phrase-level detection across your entire article corpus.</p>'
-    f'</div>'
-    f'<div class="page-intro-badge">'
-    f'<span class="pib-dot"></span>'
-    f'<strong>{n_corp:,}</strong> articles indexed'
-    f'</div>'
-    f'</div>',
-    unsafe_allow_html=True,
-)
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Top filter bar — collapsed accordion by default
