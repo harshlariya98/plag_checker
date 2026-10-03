@@ -731,7 +731,7 @@ def _detect_desc_col(df, url_col):
         if len(sample) == 0:
             continue
         avg_len = sample.str.len().mean()
-        if avg_len > best_len and avg_len >= 100:
+        if avg_len > best_len and avg_len >= 200:
             best_len, best_col = avg_len, col
     return best_col
 
