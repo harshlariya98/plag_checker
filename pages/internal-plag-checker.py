@@ -53,8 +53,15 @@ def _logo_b64():
 LOGO_URI = _logo_b64()
 
 # ── paths ─────────────────────────────────────────────────────────────────────
-CORPUS_PATH = "/Users/harsh/Documents/final_data_plag.csv"
-CACHE_DIR   = os.path.join(os.path.dirname(CORPUS_PATH), ".plag_cache")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+CORPUS_PATH = os.environ.get(
+    "PLAG_CORPUS_PATH",
+    os.path.join(_HERE, "..", "corpus", "final_data_plag.csv"),
+)
+CACHE_DIR = os.environ.get(
+    "PLAG_CACHE_DIR",
+    os.path.join(_HERE, "..", ".plag_cache"),
+)
 os.makedirs(CACHE_DIR, exist_ok=True)
 
 _TAG_RE = re.compile(r"<[^>]+>")
