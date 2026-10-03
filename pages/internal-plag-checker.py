@@ -161,7 +161,7 @@ html, body, [class*="css"] {
     background: var(--bg) !important;
     color: var(--text) !important;
 }
-.block-container { padding: 4rem 2rem 4rem !important; max-width: 1440px !important; }
+.block-container { padding: 72px 2rem 4rem !important; max-width: 1440px !important; }
 /* Collapse any flow-space left by the fixed header's markdown wrapper */
 div[data-testid="stMarkdown"]:has(.app-header) {
     height: 0 !important; overflow: visible !important;
@@ -275,16 +275,19 @@ section[data-testid="stSidebar"] { display: none !important; }
 /* ── Right: guide button + corpus status ──────────────────────────────────── */
 .app-header-right { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
 .hdr-guide-btn {
+    all: unset;
     display: inline-flex; align-items: center; gap: 5px;
     font-size: 12px; font-weight: 600; color: #16324f;
     background: #f1f4f9; border: 1px solid #d1d9e6;
-    border-radius: 8px; padding: 5px 12px;
+    border-radius: 8px; padding: 5px 13px;
     box-shadow: 0 1px 3px rgba(22,50,79,.08);
     cursor: pointer; white-space: nowrap;
     transition: background .15s, border-color .15s;
-    font-family: inherit;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+    line-height: 1.4;
 }
-.hdr-guide-btn:hover { background: #e4eaf3; border-color: #b0bed4; }
+.hdr-guide-btn:hover { background: #e4eaf3 !important; border-color: #b0bed4 !important; }
+.hdr-guide-btn:focus { outline: none !important; box-shadow: 0 0 0 2px rgba(59,130,246,.3) !important; }
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 12px; font-weight: 500; color: var(--muted);
@@ -920,6 +923,14 @@ def _ensure_corpus_index():
 # ─────────────────────────────────────────────────────────────────────────────
 # Application header
 # ─────────────────────────────────────────────────────────────────────────────
+_GUIDE_ONCLICK = (
+    "(function(){"
+    "var u=new URL(window.location);"
+    "u.searchParams.set('guide','1');"
+    "window.history.pushState({},'',u.toString());"
+    "window.dispatchEvent(new PopStateEvent('popstate',{state:{}}));"
+    "})()"
+)
 _n_pre = len(st.session_state.get("corpus_urls", []))
 _corpus_badge = (
     f'<div class="corpus-chip">'
@@ -955,7 +966,7 @@ st.markdown(
     f'    <span class="nav-tab {_tab_res_cls}">{_dot_res}Results</span>'
     f'  </nav>'
     f'  <div class="app-header-right">'
-    f'    <button class="hdr-guide-btn" onclick="var u=new URL(window.location);u.searchParams.set(\'guide\',\'1\');window.location.href=u.toString();">❓ Guide</button>'
+    f'    <button class="hdr-guide-btn" onclick="{_GUIDE_ONCLICK}">❓ Guide</button>'
     f'    {_corpus_badge}'
     f'  </div>'
     f'</div>',
