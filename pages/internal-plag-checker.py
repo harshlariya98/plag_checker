@@ -253,12 +253,22 @@ section[data-testid="stSidebar"] { display: none !important; }
 .corpus-chip.err { color: var(--red-text); }
 
 /* ── Page intro ────────────────────────────────────────────────────────────── */
-.page-intro { margin: 0 0 20px !important; animation: fadeUp .3s ease both; }
+.page-intro { margin: 0 0 20px !important; animation: fadeUp .3s ease both; display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; }
+.page-intro-text { flex: 1; min-width: 220px; }
 .page-intro h2 {
     font-size: 22px; font-weight: 800; color: var(--navy);
-    margin: 0 0 5px; letter-spacing: -.4px;
+    margin: 0 0 4px; letter-spacing: -.5px;
 }
-.page-intro p { font-size: 13.5px; color: var(--muted); margin: 0; line-height: 1.6; }
+.page-intro p { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.6; }
+.page-intro-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--blue-bg); border: 1px solid var(--blue-border);
+    border-radius: var(--radius-sm); padding: 6px 12px;
+    font-size: 11px; font-weight: 700; color: var(--blue-text);
+    white-space: nowrap; flex-shrink: 0;
+}
+.page-intro-badge strong { font-size: 14px; color: var(--blue); }
+.pib-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: pulse 1.8s ease infinite; flex-shrink: 0; }
 
 /* ── Panel card (Streamlit bordered container) ─────────────────────────────── */
 div[data-testid="stVerticalBlockBorderWrapper"] {
@@ -293,27 +303,30 @@ div[data-testid="stButton"] > button[kind="primary"]:active {
 }
 
 .panel-hd {
-    display: flex; align-items: center; gap: 9px;
+    display: flex; align-items: center; gap: 10px;
     padding-bottom: 14px; margin-bottom: 16px;
     border-bottom: 1px solid var(--border);
 }
 .panel-num {
-    width: 22px; height: 22px; border-radius: 6px; flex-shrink: 0;
+    width: 26px; height: 26px; border-radius: 7px; flex-shrink: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 11px; font-weight: 800; color: #fff;
+    font-size: 12px; font-weight: 800; color: #fff;
+    box-shadow: 0 2px 6px rgba(0,0,0,.15);
 }
-.panel-num.blue   { background: var(--blue); }
-.panel-num.coral  { background: var(--coral); }
-.panel-num.green  { background: var(--green); }
-.panel-num.purple { background: var(--purple); }
-.panel-title { font-size: 14px; font-weight: 700; color: var(--navy); }
-.panel-sub   { font-size: 12px; color: var(--muted); margin-left: auto; }
+.panel-num.blue   { background: linear-gradient(135deg, var(--blue)   0%, #5BA3EC 100%); }
+.panel-num.coral  { background: linear-gradient(135deg, var(--coral)  0%, #E85D4E 100%); }
+.panel-num.green  { background: linear-gradient(135deg, var(--green)  0%, #34D399 100%); }
+.panel-num.purple { background: linear-gradient(135deg, var(--purple) 0%, #9F67F5 100%); }
+.panel-title { font-size: 14.5px; font-weight: 700; color: var(--navy); }
+.panel-sub   { font-size: 11.5px; color: var(--muted); margin-left: auto; font-weight: 500; }
 
 /* ── Settings panel ────────────────────────────────────────────────────────── */
 .settings-hd {
-    display: flex; align-items: center; gap: 7px;
-    font-size: 13px; font-weight: 700; color: var(--navy);
-    margin-bottom: 8px;
+    display: flex; align-items: center; gap: 8px;
+    font-size: 14px; font-weight: 800; color: var(--navy);
+    padding-bottom: 12px; margin-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: -.2px;
 }
 .settings-block {
     padding-bottom: 14px; margin-bottom: 14px;
@@ -321,20 +334,46 @@ div[data-testid="stButton"] > button[kind="primary"]:active {
 }
 .settings-block:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 .settings-label {
+    display: flex; align-items: center; gap: 6px;
     font-size: 11px; font-weight: 700; letter-spacing: .07em;
-    text-transform: uppercase; color: var(--muted); margin-bottom: 6px; display: block;
+    text-transform: uppercase; color: var(--navy); margin-bottom: 8px;
 }
-.settings-sub { font-size: 11.5px; color: var(--muted); margin-top: 5px; line-height: 1.5; }
+.settings-sub { font-size: 11.5px; color: var(--muted); margin-top: 4px; line-height: 1.55; }
+
+/* Settings section group */
+.stDivider { margin: 10px 0 !important; }
+div[data-testid="stSlider"] > div > div > div[data-testid="stThumbValue"] {
+    font-size: 11px !important; font-weight: 700 !important;
+    background: var(--navy) !important; color: #fff !important;
+    border-radius: 4px !important; padding: 2px 6px !important;
+}
 
 /* Threshold colour bar */
-.thr-bar { display: flex; height: 5px; border-radius: 99px; overflow: hidden; margin: 10px 0 6px; }
+.thr-bar { display: flex; height: 6px; border-radius: 99px; overflow: hidden; margin: 10px 0 6px; box-shadow: inset 0 1px 2px rgba(0,0,0,.08); }
 .thr-ok   { background: var(--green); }
 .thr-warn { background: var(--amber); }
 .thr-dup  { background: var(--red);   }
-.thr-labels { display: flex; font-size: 10.5px; color: var(--muted); font-weight: 500; }
+.thr-labels { display: flex; font-size: 10.5px; color: var(--muted); font-weight: 600; }
 .thr-labels span { display: flex; align-items: center; gap: 3px; }
 .thr-labels span:last-child { margin-left: auto; }
-.tld { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.tld { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+
+/* Upload success state */
+.upload-ok {
+    background: var(--green-bg); border: 1px solid var(--green-border);
+    border-radius: var(--radius-sm); padding: 12px 14px; margin-top: 10px;
+    animation: fadeUp .3s ease both;
+}
+.upload-ok-row { display: flex; gap: 16px; margin-bottom: 10px; }
+.upload-stat { display: flex; flex-direction: column; gap: 1px; }
+.upload-big { font-size: 20px; font-weight: 800; color: var(--navy); line-height: 1.1; letter-spacing: -.4px; }
+.upload-big.green { color: var(--green); }
+.upload-big.amber { color: #D97706; }
+.upload-lbl { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .04em; }
+.upload-cov-bar-wrap { height: 5px; background: var(--green-border); border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+.upload-cov-bar { height: 5px; background: var(--green); border-radius: 99px; transition: width .4s ease; }
+.upload-cov-lbl { font-size: 10.5px; color: var(--green-text); font-weight: 600; }
+.upload-warn { font-size: 10.5px; color: #D97706; font-weight: 600; margin-top: 6px; }
 
 /* ── Tabs (replacing radio) ────────────────────────────────────────────────── */
 div[data-testid="stTabs"] [data-testid="stTabsContainer"] {
@@ -388,14 +427,26 @@ div[data-testid="stFileUploader"]:hover {
 /* ── Pre-run stat row ──────────────────────────────────────────────────────── */
 .info-row { display: flex; gap: 8px; margin: 14px 0; flex-wrap: wrap; }
 .info-tile {
-    flex: 1; min-width: 80px; background: var(--light);
-    border-radius: var(--radius-sm); padding: 12px 10px;
-    border: 1px solid var(--border); text-align: center;
+    flex: 1; min-width: 80px; background: var(--surface);
+    border-radius: var(--radius-sm); padding: 14px 10px 12px;
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--border);
+    text-align: center;
+    box-shadow: var(--shadow-xs);
+    transition: transform .18s, box-shadow .18s;
+    animation: fadeUp .4s ease both;
 }
-.info-val { font-size: 20px; font-weight: 800; color: var(--navy); line-height: 1; letter-spacing: -.5px; }
-.info-val.amber  { color: #D97706; }
-.info-val.purple { color: var(--purple); }
-.info-lbl { font-size: 11px; color: var(--muted); font-weight: 500; margin-top: 3px; }
+.info-tile:hover { transform: translateY(-2px); box-shadow: var(--shadow-sm); }
+.info-tile.blue   { border-top-color: var(--blue);   }
+.info-tile.amber  { border-top-color: var(--amber);  }
+.info-tile.purple { border-top-color: var(--purple); }
+.info-tile.green  { border-top-color: var(--green);  }
+.info-val { font-size: 22px; font-weight: 800; color: var(--navy); line-height: 1; letter-spacing: -.6px; }
+.info-tile.blue   .info-val { color: var(--blue);   }
+.info-tile.amber  .info-val { color: #D97706;        }
+.info-tile.purple .info-val { color: var(--purple);  }
+.info-tile.green  .info-val { color: var(--green);   }
+.info-lbl { font-size: 10.5px; color: var(--muted); font-weight: 600; margin-top: 4px; text-transform: uppercase; letter-spacing: .04em; }
 
 /* ── Summary stat tiles ────────────────────────────────────────────────────── */
 .stat-row { display: flex; gap: 8px; margin: 0 0 16px; flex-wrap: wrap; }
@@ -857,8 +908,14 @@ n_corp       = len(corpus_urls)
 # ─────────────────────────────────────────────────────────────────────────────
 st.markdown(
     f'<div class="page-intro">'
+    f'<div class="page-intro-text">'
     f'<h2>Plagiarism Checker</h2>'
-    f'<p>Check your content against <strong>{n_corp:,}+</strong> indexed articles before publishing.</p>'
+    f'<p>Catch duplicate content before publishing — phrase-level detection across your entire article corpus.</p>'
+    f'</div>'
+    f'<div class="page-intro-badge">'
+    f'<span class="pib-dot"></span>'
+    f'<strong>{n_corp:,}</strong> articles indexed'
+    f'</div>'
     f'</div>',
     unsafe_allow_html=True,
 )
@@ -872,10 +929,22 @@ left_col, right_col = st.columns([7, 3], gap="large")
 # ── Right column: settings panel ─────────────────────────────────────────────
 with right_col:
     with st.container(border=True):
-        st.markdown('<div class="settings-hd">⚙️ Detection settings</div>', unsafe_allow_html=True)
+        st.markdown(
+            '<div class="settings-hd">'
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;color:var(--blue)">'
+            '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>'
+            '</svg>'
+            'Detection settings</div>',
+            unsafe_allow_html=True,
+        )
 
-        # Copy score threshold
-        st.markdown('<span class="settings-label">Copy score threshold</span>', unsafe_allow_html=True)
+        # ── Copy score threshold ──────────────────────────────────────────────
+        st.markdown(
+            '<div class="settings-label">'
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>'
+            'Copy score threshold</div>',
+            unsafe_allow_html=True,
+        )
         dup_threshold = st.slider(
             "Copy score threshold", 10, 80, 35, format="%d%%",
             label_visibility="collapsed",
@@ -900,8 +969,13 @@ with right_col:
 
         st.divider()
 
-        # Similar topic flagging
-        st.markdown('<span class="settings-label">🔍 Similar topic detection</span>', unsafe_allow_html=True)
+        # ── Similar topic detection ───────────────────────────────────────────
+        st.markdown(
+            '<div class="settings-label">'
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>'
+            'Similar topic detection</div>',
+            unsafe_allow_html=True,
+        )
         flag_similar = st.checkbox("Flag similar topics", value=False, key="flag_similar_chk")
         st.markdown(
             '<span class="settings-sub">Off by default — education articles naturally share vocabulary. '
@@ -919,8 +993,13 @@ with right_col:
 
         st.divider()
 
-        # Web verification
-        st.markdown('<span class="settings-label">🌐 Web verification</span>', unsafe_allow_html=True)
+        # ── Web verification ──────────────────────────────────────────────────
+        st.markdown(
+            '<div class="settings-label">'
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>'
+            'Web verification</div>',
+            unsafe_allow_html=True,
+        )
         run_web = st.checkbox("Check against open web", value=False, key="run_web_chk")
         st.markdown(
             '<span class="settings-sub">Compare content against publicly accessible web pages.</span>',
@@ -935,8 +1014,13 @@ with right_col:
 
         st.divider()
 
-        # Results
-        st.markdown('<span class="settings-label">📊 Results</span>', unsafe_allow_html=True)
+        # ── Results display ───────────────────────────────────────────────────
+        st.markdown(
+            '<div class="settings-label">'
+            '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>'
+            'Results display</div>',
+            unsafe_allow_html=True,
+        )
         top_n = st.number_input("Max results shown", 10, 5000, 200)
         st.markdown(
             '<span class="settings-sub">Maximum matches displayed per run.</span>',
@@ -1003,13 +1087,37 @@ with left_col:
                             (new_df["url"].str.lower() != "nan")
                         ].reset_index(drop=True)
                         dropped = before - len(new_df)
-                        has_desc = (new_df["description"].str.strip().str.len() > 10).sum()
+                        has_desc = int((new_df["description"].str.strip().str.len() > 10).sum())
                         no_desc  = len(new_df) - has_desc
-                        parts = [f"✅ **{len(new_df):,}** articles loaded"]
-                        if has_desc: parts.append(f"{has_desc:,} have HTML content")
-                        if no_desc:  parts.append(f"{no_desc:,} will be fetched live")
-                        if dropped:  parts.append(f"⚠️ {dropped:,} rows skipped (no URL)")
-                        st.success("  ·  ".join(parts))
+                        pct_ready = int(has_desc / max(len(new_df), 1) * 100)
+                        drop_html = (
+                            f'<div class="upload-warn">⚠️ {dropped:,} rows skipped — no URL</div>'
+                            if dropped else ""
+                        )
+                        st.markdown(
+                            f'<div class="upload-ok">'
+                            f'  <div class="upload-ok-row">'
+                            f'    <div class="upload-stat">'
+                            f'      <span class="upload-big">{len(new_df):,}</span>'
+                            f'      <span class="upload-lbl">articles loaded</span>'
+                            f'    </div>'
+                            f'    <div class="upload-stat">'
+                            f'      <span class="upload-big green">{has_desc:,}</span>'
+                            f'      <span class="upload-lbl">have HTML (fast)</span>'
+                            f'    </div>'
+                            f'    <div class="upload-stat">'
+                            f'      <span class="upload-big amber">{no_desc:,}</span>'
+                            f'      <span class="upload-lbl">need live fetch</span>'
+                            f'    </div>'
+                            f'  </div>'
+                            f'  <div class="upload-cov-bar-wrap">'
+                            f'    <div class="upload-cov-bar" style="width:{pct_ready}%"></div>'
+                            f'  </div>'
+                            f'  <div class="upload-cov-lbl">{pct_ready}% content ready without network fetch</div>'
+                            f'  {drop_html}'
+                            f'</div>',
+                            unsafe_allow_html=True,
+                        )
 
         with tab_url:
             pasted = st.text_area(
@@ -1040,10 +1148,10 @@ with left_col:
                          else f"~{int(est_sec)}s")
             st.markdown(
                 f'<div class="info-row">'
-                f'<div class="info-tile"><div class="info-val">{n_new}</div><div class="info-lbl">Articles</div></div>'
-                f'<div class="info-tile"><div class="info-val">{n_corp:,}</div><div class="info-lbl">Corpus size</div></div>'
-                f'<div class="info-tile"><div class="info-val amber">{n_fetch}</div><div class="info-lbl">To fetch</div></div>'
-                f'<div class="info-tile"><div class="info-val purple">{est_label}</div><div class="info-lbl">Est. time</div></div>'
+                f'<div class="info-tile blue"><div class="info-val">{n_new}</div><div class="info-lbl">Articles</div></div>'
+                f'<div class="info-tile green"><div class="info-val">{n_corp:,}</div><div class="info-lbl">Corpus size</div></div>'
+                f'<div class="info-tile amber"><div class="info-val">{n_fetch}</div><div class="info-lbl">To fetch</div></div>'
+                f'<div class="info-tile purple"><div class="info-val">{est_label}</div><div class="info-lbl">Est. time</div></div>'
                 f'</div>',
                 unsafe_allow_html=True,
             )
