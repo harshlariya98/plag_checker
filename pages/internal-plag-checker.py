@@ -453,16 +453,19 @@ div[data-testid="stFileUploader"]:hover {
 .rc:hover { box-shadow: var(--shadow-sm); transform: translateY(-1px); }
 .rc.danger { border-left-color: var(--red);   }
 .rc.warn   { border-left-color: var(--amber); }
+.rc.info   { border-left-color: var(--blue);  }
 .rc.ok     { border-left-color: var(--green); }
-.rc-score { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 50px; }
+.rc-score { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 56px; }
 .rc-pct { font-size: 19px; font-weight: 800; line-height: 1; }
 .rc.danger .rc-pct { color: var(--red);   }
 .rc.warn   .rc-pct { color: #D97706;      }
+.rc.info   .rc-pct { color: var(--blue);  }
 .rc.ok     .rc-pct { color: var(--green); }
 .rc-bar-bg { width: 40px; height: 3px; background: var(--border); border-radius: 99px; overflow: hidden; }
 .rc-bar    { height: 3px; border-radius: 99px; }
 .rc.danger .rc-bar { background: var(--red);   }
 .rc.warn   .rc-bar { background: var(--amber); }
+.rc.info   .rc-bar { background: var(--blue);  }
 .rc.ok     .rc-bar { background: var(--green); }
 .rc-body { flex: 1; font-size: 13px; color: #374151; line-height: 1.65; min-width: 0; }
 .rc-body a { color: var(--blue); text-decoration: none; overflow-wrap: break-word; word-break: break-all; font-size: 12.5px; }
@@ -471,6 +474,7 @@ div[data-testid="stFileUploader"]:hover {
 .rc-badge { display: inline-flex; align-items: center; padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 700; margin-left: 6px; vertical-align: middle; }
 .rc-badge.danger { background: var(--red-bg);   color: var(--red-text);   }
 .rc-badge.warn   { background: var(--amber-bg); color: var(--amber-text); }
+.rc-badge.info   { background: var(--blue-bg);  color: var(--blue);       }
 .rc-badge.ok     { background: var(--green-bg); color: var(--green-text); }
 .rc-meta { font-size: 11px; color: #94A3B8; margin-top: 4px; }
 
@@ -571,15 +575,19 @@ def smart_col(df, candidates):
             return lower[c]
     return None
 
-def verdict_for(score, threshold, phrase_match=None):
-    if score >= threshold:
-        # downgrade if phrases don't actually match (topic overlap, not copying)
-        if phrase_match is not None and phrase_match < 25:
-            return "warn", "Similar topic"
+def verdict_for(copy_score, topic_score, threshold):
+    """
+    copy_score  = 5-word shingle Jaccard % (primary — measures actual copied text)
+    topic_score = TF-IDF cosine %          (secondary — measures topic overlap)
+    threshold   = user-set copy threshold
+    """
+    if copy_score >= threshold:
         return "danger", "Duplicate"
-    if score >= 40:
-        return "warn", "Review"
-    return "ok",   "Unique"
+    if copy_score >= max(threshold * 0.4, 12):
+        return "warn", "High overlap"
+    if topic_score >= 65:
+        return "info", "Similar topic"
+    return "ok", "Unique"
 
 def normalise_new(df):
     url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
@@ -802,24 +810,26 @@ with right_col:
     with st.container(border=True):
         st.markdown('<div class="settings-hd">⚙️ Detection settings</div>', unsafe_allow_html=True)
 
-        # Similarity threshold
-        st.markdown('<span class="settings-label">Similarity threshold</span>', unsafe_allow_html=True)
+        # Copy score threshold
+        st.markdown('<span class="settings-label">Copy score threshold</span>', unsafe_allow_html=True)
         dup_threshold = st.slider(
-            "Duplicate threshold", 20, 100, 65, format="%d%%",
+            "Copy score threshold", 10, 80, 35, format="%d%%",
             label_visibility="collapsed",
-            help="Articles ≥ this similarity score are flagged as duplicates",
+            help="Articles with copy score ≥ this are flagged as duplicates. "
+                 "Copy score = 5-word phrase Jaccard (Copyscape-style). "
+                 "35% means ~35% of 5-word phrases are shared — strong signal of copying.",
         )
-        warn_w = max(1, dup_threshold - 40)
-        dup_w  = max(1, 100 - dup_threshold)
+        overlap_w = max(1, dup_threshold - 12)
+        dup_w     = max(1, 80 - dup_threshold)
         st.markdown(
             f'<div class="thr-bar">'
-            f'<div class="thr-ok" style="flex:40"></div>'
-            f'<div class="thr-warn" style="flex:{warn_w}"></div>'
+            f'<div class="thr-ok" style="flex:12"></div>'
+            f'<div class="thr-warn" style="flex:{overlap_w}"></div>'
             f'<div class="thr-dup" style="flex:{dup_w}"></div>'
             f'</div>'
             f'<div class="thr-labels">'
-            f'<span><span class="tld" style="background:var(--green)"></span>&lt;40% Original</span>'
-            f'<span><span class="tld" style="background:var(--red)"></span>≥{dup_threshold}% Dup</span>'
+            f'<span><span class="tld" style="background:var(--green)"></span>&lt;12% Original</span>'
+            f'<span><span class="tld" style="background:var(--red)"></span>≥{dup_threshold}% Duplicate</span>'
             f'</div>',
             unsafe_allow_html=True,
         )
@@ -989,59 +999,84 @@ with left_col:
                 s2.update(label=f"✅ {n_new} articles ready",
                           state="complete", expanded=False)
 
-            # similarity
+            # ── Multi-signal similarity (Copyscape / Turnitin style) ─────────────
             with st.status("⚡ Computing similarity…", expanded=False) as s3:
                 valid_new   = [(i, t) for i, t in enumerate(new_texts) if len(t.split()) >= 30]
-                sim_results = [(0.0, 0, 0.0, None)] * n_new  # (score, corpus_idx, oov_ratio, phrase_match)
+                # tuple: (tfidf_sc, corpus_idx, oov_ratio, copy_score, matched_sents)
+                sim_results = [(0.0, 0, 0.0, 0.0, 0)] * n_new
 
                 corpus_vocab = set(corpus_vec.vocabulary_.keys())
                 _stop = corpus_vec.get_stop_words() or set()
 
-                def _oov_ratio(text):
-                    tokens = re.findall(r'\b[a-z]{3,}\b', text.lower())
-                    tokens = [t for t in tokens if t not in _stop]
-                    if not tokens:
-                        return 0.0
-                    oov = sum(1 for t in tokens if t not in corpus_vocab)
-                    return round(oov / len(tokens) * 100, 1)
-
                 def _norm_url(u):
                     return str(u).strip().lower().rstrip("/")
 
-                def _phrase_overlap(new_text, corp_text, fuzz_threshold=72):
-                    """% of new-article passages that fuzzy-match somewhere in the corpus article."""
-                    if not corp_text or not new_text:
+                def _oov_ratio(text):
+                    tokens = re.findall(r'\b[a-z]{3,}\b', text.lower())
+                    tokens = [t for t in tokens if t not in _stop]
+                    if not tokens: return 0.0
+                    oov = sum(1 for t in tokens if t not in corpus_vocab)
+                    return round(oov / len(tokens) * 100, 1)
+
+                def _shingle_jaccard(text_a, text_b, k=5):
+                    """5-word shingle Jaccard — primary copy signal (Copyscape/Google approach).
+                    Returns % of shared k-word phrases between the two texts."""
+                    wa = re.findall(r'\b[a-z]{2,}\b', text_a.lower())
+                    wb = re.findall(r'\b[a-z]{2,}\b', text_b.lower())
+                    if len(wa) < k or len(wb) < k:
                         return 0.0
-                    passages = build_passages(new_text, words_per_passage=25, n_samples=8)
-                    if not passages:
-                        return 0.0
-                    norm_corp = normalize(corp_text)
-                    matched = sum(
-                        1 for p in passages
-                        if fuzz.partial_ratio(normalize(p), norm_corp) >= fuzz_threshold
-                    )
-                    return round(matched / len(passages) * 100, 1)
+                    sa = set(zip(*[wa[i:] for i in range(k)]))
+                    sb = set(zip(*[wb[i:] for i in range(k)]))
+                    inter = len(sa & sb)
+                    union = len(sa | sb)
+                    return round(inter / union * 100, 1) if union else 0.0
+
+                def _verbatim_sentences(new_text, corp_text, min_words=8):
+                    """Count sentences ≥ min_words that appear verbatim in corp_text."""
+                    corp_norm = re.sub(r'\s+', ' ', corp_text.lower())
+                    count = 0
+                    for sent in re.split(r'(?<=[.!?])\s+|\n', new_text):
+                        s = re.sub(r'\s+', ' ', sent.lower().strip())
+                        if len(s.split()) >= min_words and s in corp_norm:
+                            count += 1
+                    return count
+
+                import numpy as np_mod
+                TOP_K = 5  # check shingles against top-5 TF-IDF candidates
 
                 if valid_new and corpus_mat.shape[0] > 0:
                     vt      = [t for _, t in valid_new]
                     new_mat = corpus_vec.transform(vt)
                     sims    = cosine_similarity(new_mat, corpus_mat)
-                    # Build a normalised URL→index map so we can exclude self-matches
                     corpus_url_idx = {_norm_url(u): i for i, u in enumerate(corpus_urls)}
+
                     for ni, (orig_i, t) in enumerate(valid_new):
                         row_url = _norm_url(new_df.iloc[orig_i]["url"])
                         scores  = sims[ni].copy()
-                        # If this article is already in the corpus, mask it out
-                        # so we find the best *other* match instead of itself
                         if row_url in corpus_url_idx:
                             scores[corpus_url_idx[row_url]] = -1.0
+
+                        # TF-IDF best (fast coarse rank)
                         best_j  = int(scores.argmax())
                         best_sc = round(float(scores[best_j]) * 100, 1)
-                        # Phrase-level overlap for articles above soft threshold
-                        phrase_ov = None
-                        if corpus_texts is not None and best_sc >= max(dup_threshold - 15, 40):
-                            phrase_ov = _phrase_overlap(t, corpus_texts[best_j])
-                        sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t), phrase_ov)
+
+                        # Shingle + sentence check against top-K TF-IDF candidates
+                        copy_sc = 0.0
+                        matched_sents = 0
+                        if corpus_texts is not None:
+                            k_size   = min(TOP_K, len(scores))
+                            top_idxs = np_mod.argpartition(scores, -k_size)[-k_size:]
+                            for cj in top_idxs:
+                                ct = corpus_texts[int(cj)]
+                                if not ct:
+                                    continue
+                                js = _shingle_jaccard(t, ct)
+                                if js > copy_sc:
+                                    copy_sc = js
+                                    matched_sents = _verbatim_sentences(t, ct)
+
+                        sim_results[orig_i] = (best_sc, best_j, _oov_ratio(t),
+                                               copy_sc, matched_sents)
                 s3.update(label="⚡ Similarity computed", state="complete")
 
             # optional web check
@@ -1071,18 +1106,19 @@ with left_col:
 
             # assemble
             final_rows = []
-            for row, txt, wc, (sc, ci, oov, phrase_ov) in zip(
+            for row, txt, wc, (tfidf_sc, ci, oov, copy_sc, msents) in zip(
                 new_df.itertuples(), new_texts, new_wc, sim_results
             ):
                 corp_url = corpus_urls[ci] if ci < len(corpus_urls) else ""
                 wr       = web_res.get(row.url, {})
-                cls, vlabel = verdict_for(sc, dup_threshold, phrase_match=phrase_ov)[:2]
+                cls, vlabel = verdict_for(copy_sc, tfidf_sc, dup_threshold)[:2]
                 final_rows.append({
                     "url":                    row.url,
                     "word_count":             wc,
-                    "similarity_to_corpus_%": sc,
+                    "copy_score_%":           copy_sc,
+                    "topic_overlap_%":        tfidf_sc,
+                    "matched_sentences":      msents,
                     "new_vocab_%":            oov,
-                    "phrase_match_%":         phrase_ov,
                     "verdict":                vlabel,
                     "matched_existing_url":   corp_url,
                     "web_plag_score":         wr.get("plagiarism_score"),
@@ -1119,10 +1155,10 @@ if results:
     ])
 
     n_dup = int((rdf["verdict"] == "Duplicate").sum())
-    n_rev = int(rdf["verdict"].isin(["Review", "Similar topic"]).sum())
+    n_rev = int(rdf["verdict"].isin(["High overlap", "Similar topic"]).sum())
     n_ok  = int((rdf["verdict"] == "Unique").sum())
-    avg_s = f"{rdf['similarity_to_corpus_%'].mean():.1f}%"
-    hi_s  = f"{rdf['similarity_to_corpus_%'].max():.1f}%"
+    avg_s = f"{rdf['copy_score_%'].mean():.1f}%"
+    hi_s  = f"{rdf['copy_score_%'].max():.1f}%"
 
     # Results header
     hdr_l, hdr_r = st.columns([6, 1], vertical_alignment="bottom")
@@ -1144,10 +1180,10 @@ if results:
         f'<div class="stat-row">'
         f'<div class="stat-tile"><div class="stat-val">{len(rdf)}</div><div class="stat-lbl">Checked</div></div>'
         f'<div class="stat-tile green"><div class="stat-val">{n_ok}</div><div class="stat-lbl">Original</div></div>'
-        f'<div class="stat-tile amber"><div class="stat-val">{n_rev}</div><div class="stat-lbl">Needs review</div></div>'
+        f'<div class="stat-tile amber"><div class="stat-val">{n_rev}</div><div class="stat-lbl">High overlap</div></div>'
         f'<div class="stat-tile red"><div class="stat-val">{n_dup}</div><div class="stat-lbl">Duplicate</div></div>'
-        f'<div class="stat-tile purple"><div class="stat-val">{avg_s}</div><div class="stat-lbl">Avg similarity</div></div>'
-        f'<div class="stat-tile"><div class="stat-val">{hi_s}</div><div class="stat-lbl">Highest</div></div>'
+        f'<div class="stat-tile purple"><div class="stat-val">{avg_s}</div><div class="stat-lbl">Avg copy score</div></div>'
+        f'<div class="stat-tile"><div class="stat-val">{hi_s}</div><div class="stat-lbl">Highest copy</div></div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -1155,8 +1191,8 @@ if results:
     if n_dup:
         alert_strip(
             f'<b>{n_dup} article{"s" if n_dup>1 else ""}</b> '
-            f'{"are" if n_dup>1 else "is"} ≥{dup_threshold}% similar to existing content — '
-            'review before publishing.',
+            f'{"have" if n_dup>1 else "has"} copy score ≥{dup_threshold}% — '
+            'text is substantially copied from existing content.',
             kind="danger",
         )
     else:
@@ -1176,7 +1212,7 @@ if results:
         show = results if view == "📋  All results" else [
             r for r in results if r["verdict"] == "Duplicate"
         ]
-        show = sorted(show, key=lambda r: r["similarity_to_corpus_%"], reverse=True)
+        show = sorted(show, key=lambda r: r["copy_score_%"], reverse=True)
         show = show[:int(top_n)]
 
         if not show:
@@ -1188,8 +1224,9 @@ if results:
             tdf = pd.DataFrame([{
                 "Article":          r["url"],
                 "Words":            r["word_count"],
-                "Similarity":       r["similarity_to_corpus_%"],
-                "Phrase match %":   r.get("phrase_match_%"),
+                "Copy score %":     r.get("copy_score_%", 0.0),
+                "Topic overlap %":  r.get("topic_overlap_%", 0.0),
+                "Matched sents":    r.get("matched_sentences", 0),
                 "New vocab %":      r.get("new_vocab_%", 0.0),
                 "Verdict":          r["verdict"],
                 "Closest existing": r["matched_existing_url"],
@@ -1200,13 +1237,21 @@ if results:
                 column_config={
                     "Article":          st.column_config.LinkColumn(width="large"),
                     "Words":            st.column_config.NumberColumn(width="small"),
-                    "Similarity":       st.column_config.ProgressColumn(
+                    "Copy score %":     st.column_config.ProgressColumn(
+                        help="5-word phrase Jaccard similarity — primary copy signal. "
+                             "Measures what % of 5-word phrases in this article also appear in the matched corpus article. "
+                             "This is how Copyscape & Google detect near-duplicates. "
+                             "≥35% = significant copying; <12% = original content.",
+                        min_value=0, max_value=100, format="%.1f%%", width="small"),
+                    "Topic overlap %":  st.column_config.ProgressColumn(
+                        help="TF-IDF cosine similarity — topic context only. "
+                             "High value for articles about the same subject even when written differently. "
+                             "Use Copy score as the actual plagiarism signal.",
                         min_value=0, max_value=100, format="%.0f%%", width="small"),
-                    "Phrase match %":   st.column_config.ProgressColumn(
-                        help="% of passages in this article that actually match sentences in the corpus. "
-                             "Low = different content despite similar vocabulary (topic overlap, not copied). "
-                             "High = text is genuinely copied.",
-                        min_value=0, max_value=100, format="%.0f%%", width="small"),
+                    "Matched sents":    st.column_config.NumberColumn(
+                        help="Number of sentences (≥8 words) that appear verbatim in the matched corpus article. "
+                             "Any non-zero value is strong evidence of direct copying.",
+                        width="small", format="%d"),
                     "New vocab %":      st.column_config.ProgressColumn(
                         help="% of meaningful words in this article not found anywhere in the corpus. "
                              "High = lots of new/unique content. Low = mostly the same words as corpus.",
@@ -1217,25 +1262,29 @@ if results:
             )
 
             # Detail cards for flagged articles
-            flagged = [r for r in show if r["similarity_to_corpus_%"] >= 40]
+            flagged = [r for r in show if r["verdict"] in ("Duplicate", "High overlap")]
             if flagged:
                 st.markdown(
                     '<p class="detail-label">Flagged articles — detail view</p>',
                     unsafe_allow_html=True,
                 )
                 for r in flagged:
-                    sc  = r["similarity_to_corpus_%"]
-                    cls, vlabel = verdict_for(sc, dup_threshold, phrase_match=r.get("phrase_match_%"))[:2]
+                    copy_sc  = r.get("copy_score_%", 0.0)
+                    topic_sc = r.get("topic_overlap_%", 0.0)
+                    msents   = r.get("matched_sentences", 0)
+                    cls, vlabel = verdict_for(copy_sc, topic_sc, dup_threshold)[:2]
                     icon = "🚨" if cls == "danger" else "👀"
                     new_e   = html_module.escape(r["url"])
                     corp_u  = html_module.escape(r["matched_existing_url"], quote=True)
                     corp_ue = html_module.escape(r["matched_existing_url"])
-                    bar_w   = min(int(sc), 100)
+                    bar_w   = min(int(copy_sc * 2), 100)  # scale 0-50% → 0-100px bar
+                    sents_note = f' &nbsp;·&nbsp; {msents} verbatim sentence{"s" if msents!=1 else ""}' if msents else ""
                     st.markdown(
                         f'<div class="rc {cls}">'
                         f'<div class="rc-score">'
-                        f'<div class="rc-pct">{sc:.0f}%</div>'
-                        f'<div class="rc-bar-bg"><div class="rc-bar" style="width:{bar_w}%"></div></div>'
+                        f'<div class="rc-pct">{copy_sc:.0f}%</div>'
+                        f'<div style="font-size:9px;color:#9CA3AF;margin-top:2px;">copy score</div>'
+                        f'<div class="rc-bar-bg" style="margin-top:4px;"><div class="rc-bar" style="width:{bar_w}%"></div></div>'
                         f'</div>'
                         f'<div class="rc-body">'
                         f'<div class="rc-label">New article</div>'
@@ -1243,9 +1292,9 @@ if results:
                         f'<span class="rc-badge {cls}">{icon} {vlabel}</span>'
                         f'<div class="rc-label" style="margin-top:.6rem;">Closest match in corpus</div>'
                         f'<a href="{corp_u}" target="_blank">{corp_ue}</a>'
-                        f'<div class="rc-meta">{r["word_count"]:,} words &nbsp;·&nbsp; {sc:.1f}% similar'
-                        + (f' &nbsp;·&nbsp; {r["phrase_match_%"]:.0f}% phrase match' if r.get("phrase_match_%") is not None else "")
-                        + '</div>'
+                        f'<div class="rc-meta">{r["word_count"]:,} words'
+                        f' &nbsp;·&nbsp; {copy_sc:.1f}% copy &nbsp;·&nbsp; {topic_sc:.0f}% topic overlap'
+                        f'{sents_note}</div>'
                         f'</div></div>',
                         unsafe_allow_html=True,
                     )
