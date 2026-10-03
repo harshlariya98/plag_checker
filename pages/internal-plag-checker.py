@@ -272,8 +272,19 @@ section[data-testid="stSidebar"] { display: none !important; }
     animation: pulse 1.8s ease infinite;
 }
 
-/* ── Right: corpus status ──────────────────────────────────────────────────── */
-.app-header-right { flex-shrink: 0; }
+/* ── Right: guide button + corpus status ──────────────────────────────────── */
+.app-header-right { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
+.hdr-guide-btn {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 600; color: #16324f;
+    background: #f1f4f9; border: 1px solid #d1d9e6;
+    border-radius: 8px; padding: 5px 12px;
+    box-shadow: 0 1px 3px rgba(22,50,79,.08);
+    cursor: pointer; white-space: nowrap;
+    transition: background .15s, border-color .15s;
+    font-family: inherit;
+}
+.hdr-guide-btn:hover { background: #e4eaf3; border-color: #b0bed4; }
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 12px; font-weight: 500; color: var(--muted);
@@ -944,6 +955,9 @@ st.markdown(
     f'    <span class="nav-tab {_tab_res_cls}">{_dot_res}Results</span>'
     f'  </nav>'
     f'  <div class="app-header-right">'
+    f'    <button class="hdr-guide-btn" onclick="(function(){{var bs=document.querySelectorAll(\'button\');for(var i=0;i<bs.length;i++){{if(bs[i].getAttribute(\'data-guide-trigger\')==\'1\'){{bs[i].click();break;}}}}}})()">'
+    f'      ❓ Guide'
+    f'    </button>'
     f'    {_corpus_badge}'
     f'  </div>'
     f'</div>',
@@ -1072,60 +1086,28 @@ def _show_guide():
                 st.markdown(line)
         st.write("")
 
-# Guide button — rendered as a Streamlit button, then JS floats it into the header
-if st.button("❓ Guide", key="_guide_btn"):
+# Hidden Streamlit trigger for the guide dialog — clicked by the header HTML button via JS
+if st.button("​_guide_​", key="_guide_btn"):
     _show_guide()
+# Tag the trigger button by its unique zero-width-space label, then hide its container
 st.markdown("""
-<style>
-.guide-btn-floated {
-    position: fixed !important;
-    top: 10px !important;
-    right: 220px !important;
-    z-index: 9999999 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    width: auto !important;
-    display: block !important;
-}
-.guide-btn-floated button {
-    height: 34px !important;
-    padding: 0 13px !important;
-    font-size: 12px !important;
-    font-weight: 600 !important;
-    border-radius: 8px !important;
-    border: 1px solid #d1d9e6 !important;
-    background: #f1f4f9 !important;
-    color: #16324f !important;
-    box-shadow: 0 1px 3px rgba(22,50,79,.08) !important;
-    min-height: unset !important;
-    line-height: 1 !important;
-    white-space: nowrap !important;
-}
-.guide-btn-floated button:hover {
-    background: #e4eaf3 !important;
-    border-color: #b0bed4 !important;
-}
-</style>
 <script>
-(function floatGuideBtn() {
-    function tryFloat() {
-        var btns = document.querySelectorAll('button');
-        for (var i = 0; i < btns.length; i++) {
-            if (btns[i].textContent.trim() === '❓ Guide') {
-                var wrapper = btns[i].closest('[data-testid="stButton"]') ||
-                              btns[i].closest('[data-testid="element-container"]') ||
-                              btns[i].parentElement;
-                if (wrapper && !wrapper.classList.contains('guide-btn-floated')) {
-                    wrapper.classList.add('guide-btn-floated');
-                }
+(function(){
+    function tag(){
+        var bs=document.querySelectorAll('button');
+        for(var i=0;i<bs.length;i++){
+            if(bs[i].textContent.indexOf('​_guide_​')!==-1){
+                bs[i].setAttribute('data-guide-trigger','1');
+                var w=bs[i].closest('[data-testid="stButton"]')||bs[i].parentElement;
+                if(w) w.style.cssText='display:none!important;position:absolute;left:-9999px';
                 return true;
             }
         }
         return false;
     }
-    if (!tryFloat()) {
-        var obs = new MutationObserver(function() { if (tryFloat()) obs.disconnect(); });
-        obs.observe(document.body, { childList: true, subtree: true });
+    if(!tag()){
+        var o=new MutationObserver(function(){if(tag())o.disconnect();});
+        o.observe(document.body,{childList:true,subtree:true});
     }
 })();
 </script>
