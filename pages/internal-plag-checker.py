@@ -25,7 +25,8 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from plag_utils import fetch_text, check_article, clear_page_cache
+from plag_utils import fetch_text, check_article, clear_page_cache, build_passages, normalize
+from rapidfuzz import fuzz
 
 @st.cache_data(show_spinner=False)
 def _logo_b64():
