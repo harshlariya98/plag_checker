@@ -547,11 +547,8 @@ div[data-testid="stFileUploaderDropzone"] {
 .upload-info-col span  { font-size: 11px; color: #4b5563; line-height: 1.5; }
 .upload-info-divider { width: 1px; background: #dbeafe; align-self: stretch; }
 /* ── Action buttons stack ── */
-.upload-action-stack [data-testid="stElementContainer"],
-.upload-action-stack [data-testid="stDownloadButton"],
-.upload-action-stack [data-testid="stButton"],
-.upload-action-stack .stDownloadButton,
-.upload-action-stack .stButton { margin-top: 0 !important; margin-bottom: 6px !important; padding: 0 !important; gap: 0 !important; }
+.upload-action-stack [data-testid="stVerticalBlock"] { gap: 6px !important; }
+.upload-action-stack [data-testid="stElementContainer"] { margin: 0 !important; padding: 0 !important; }
 .upload-sample-btn button {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
