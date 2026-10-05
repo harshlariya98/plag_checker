@@ -12,6 +12,7 @@ import re
 import sys
 import threading
 import time
+import xml.etree.ElementTree as ET
 from datetime import datetime
 
 import base64
@@ -64,6 +65,13 @@ CACHE_DIR = os.environ.get(
 )
 os.makedirs(CACHE_DIR, exist_ok=True)
 
+KA_SITEMAPS = [
+    "https://www.kollegeapply.com/index-updates.xml",
+    "https://www.kollegeapply.com/latest-updates.xml",
+    "https://www.kollegeapply.com/weekly-updates.xml",
+]
+_SM_NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+
 _TAG_RE = re.compile(r"<[^>]+>")
 _WS_RE  = re.compile(r"\s+")
 
@@ -84,6 +92,32 @@ def _fmt_eta(seconds):
     if seconds < 60:
         return f"{seconds}s left"
     return f"{seconds // 60}m {seconds % 60}s left"
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def _fetch_ka_sitemap_urls():
+    """Fetch all published KA URLs from all 3 sitemaps. Returns frozenset."""
+    collected = set()
+
+    def _parse(url, depth=0):
+        if depth > 4:
+            return
+        try:
+            r = _req.get(url, timeout=20, headers={"User-Agent": "Mozilla/5.0"})
+            r.raise_for_status()
+            root = ET.fromstring(r.content)
+            tag  = root.tag.split("}")[-1] if "}" in root.tag else root.tag
+            if tag == "sitemapindex":
+                for sm in root.findall(".//sm:loc", _SM_NS):
+                    _parse(sm.text.strip(), depth + 1)
+            else:
+                for loc in root.findall(".//sm:loc", _SM_NS):
+                    collected.add(loc.text.strip().lower().rstrip("/"))
+        except Exception:
+            pass
+
+    for sm_url in KA_SITEMAPS:
+        _parse(sm_url)
+    return frozenset(collected)
 
 def _run_with_progress(fn, label, est_seconds):
     holder = [None]
@@ -1478,9 +1512,10 @@ n_corp       = len(corpus_urls)
 dup_threshold = 35  # fixed Copyscape-style threshold — not user-configurable
 
 # Defaults (used when accordion is collapsed and widgets haven't rendered)
-flag_similar = st.session_state.get("flag_similar_chk", False)
-run_web      = st.session_state.get("run_web_chk", False)
-top_n        = 200
+flag_similar    = st.session_state.get("flag_similar_chk", False)
+run_web         = st.session_state.get("run_web_chk", False)
+run_sitemap_chk = st.session_state.get("ka_run_sitemap_chk", True)
+top_n           = 200
 n_passages, web_thresh, own_domain, excl_domains = 8, 85, "kollegeapply.com", "wikipedia.org\nyoutube.com"
 
 _engine_chip = (
@@ -1527,6 +1562,11 @@ with st.expander(
             '<div class="filter-sub">Compare against publicly accessible web pages.</div>',
             unsafe_allow_html=True,
         )
+        run_sitemap_chk = st.checkbox("Check if URL is in KA sitemap", value=True, key="ka_run_sitemap_chk")
+        st.markdown(
+            '<div class="filter-sub">Flag articles whose URL is already published on kollegeapply.com.</div>',
+            unsafe_allow_html=True,
+        )
         if run_web:
             st.markdown('<div class="filter-sub" style="margin-top:10px;font-weight:600;color:var(--navy);">Options</div>', unsafe_allow_html=True)
             n_passages   = st.slider("Passages per article", 4, 20, 8)
@@ -1552,6 +1592,18 @@ with st.expander(
         st.markdown(_engine_chip, unsafe_allow_html=True)
 
 similar_topic_threshold = 80 if flag_similar else None
+
+# ── Pre-fetch KA sitemap URL set (cached 1h, non-blocking) ───────────────────
+_ka_sitemap_urls: "frozenset[str]" = frozenset()
+if run_sitemap_chk:
+    try:
+        _ka_sitemap_urls = _fetch_ka_sitemap_urls()
+    except Exception:
+        _ka_sitemap_urls = frozenset()
+
+def _in_sitemap(url: str) -> bool:
+    u = url.strip().lower().rstrip("/")
+    return u in _ka_sitemap_urls
 
 # ── Upload + run ──────────────────────────────────────────────────────────────
 if True:
@@ -1946,6 +1998,7 @@ if True:
                         "new_vocab_%":            oov,
                         "verdict":                vlabel,
                         "matched_existing_url":   corp_url,
+                        "in_sitemap":             _in_sitemap(row.url) if run_sitemap_chk else None,
                         "web_plag_score":         wr.get("plagiarism_score"),
                         "web_verdict":            wr.get("verdict", ""),
                         "top_web_sources":        wr.get("top_sources", ""),
@@ -1967,11 +2020,12 @@ if results:
         for r in results
     ])
 
-    n_dup = int((rdf["verdict"] == "Duplicate").sum())
-    n_rev = int(rdf["verdict"].isin(["High overlap", "Similar topic"]).sum())
-    n_ok  = int((rdf["verdict"] == "Unique").sum())
-    avg_s = f"{rdf['copy_score_%'].mean():.1f}%"
-    hi_s  = f"{rdf['copy_score_%'].max():.1f}%"
+    n_dup  = int((rdf["verdict"] == "Duplicate").sum())
+    n_rev  = int(rdf["verdict"].isin(["High overlap", "Similar topic"]).sum())
+    n_ok   = int((rdf["verdict"] == "Unique").sum())
+    avg_s  = f"{rdf['copy_score_%'].mean():.1f}%"
+    hi_s   = f"{rdf['copy_score_%'].max():.1f}%"
+    n_live = int(rdf["in_sitemap"].sum()) if "in_sitemap" in rdf.columns and rdf["in_sitemap"].notna().any() else None
 
     # Results header
     hdr_l, hdr_r = st.columns([6, 1], vertical_alignment="bottom")
@@ -1989,12 +2043,16 @@ if results:
             st.rerun()
 
     # Summary stat tiles
+    _live_tile = (
+        f'<div class="stat-tile amber"><div class="stat-val">{n_live}</div><div class="stat-lbl">Already Live</div></div>'
+    ) if n_live is not None else ""
     st.markdown(
         f'<div class="stat-row">'
         f'<div class="stat-tile"><div class="stat-val">{len(rdf)}</div><div class="stat-lbl">Checked</div></div>'
         f'<div class="stat-tile green"><div class="stat-val">{n_ok}</div><div class="stat-lbl">Original</div></div>'
         f'<div class="stat-tile amber"><div class="stat-val">{n_rev}</div><div class="stat-lbl">High overlap</div></div>'
         f'<div class="stat-tile red"><div class="stat-val">{n_dup}</div><div class="stat-lbl">Duplicate</div></div>'
+        + _live_tile +
         f'<div class="stat-tile purple"><div class="stat-val">{avg_s}</div><div class="stat-lbl">Avg copy score</div></div>'
         f'<div class="stat-tile"><div class="stat-val">{hi_s}</div><div class="stat-lbl">Highest copy</div></div>'
         f'</div>',
@@ -2084,10 +2142,11 @@ if results:
                 return "/".join(parts[-2:]) if len(parts) >= 2 else url
 
             for r in show:
-                copy_sc  = r.get("copy_score_%", 0.0)
-                topic_sc = r.get("topic_overlap_%", 0.0)
-                msents   = r.get("matched_sentences", 0)
-                oov      = r.get("new_vocab_%", 0.0)
+                copy_sc     = r.get("copy_score_%", 0.0)
+                topic_sc    = r.get("topic_overlap_%", 0.0)
+                msents      = r.get("matched_sentences", 0)
+                oov         = r.get("new_vocab_%", 0.0)
+                sitemap_hit = r.get("in_sitemap")
                 cls, vlabel = verdict_for(copy_sc, topic_sc, dup_threshold, similar_topic_threshold)[:2]
                 action_txt, action_cls = _ACTION[cls]
                 badge_lbl  = _BADGE[cls]
@@ -2110,12 +2169,19 @@ if results:
                     f'⚠ {msents} verbatim line{"s" if msents!=1 else ""}</span>'
                 ) if msents > 0 else ""
 
+                _sitemap_badge = (
+                    '<span style="display:inline-flex;align-items:center;gap:3px;'
+                    'background:#FEF3C7;color:#92400E;border:1px solid #FCD34D;'
+                    'border-radius:4px;padding:1px 7px;font-size:10px;font-weight:700;margin-left:6px;">'
+                    '📍 Already Published</span>'
+                ) if sitemap_hit else ""
+
                 st.markdown(
                     f'<div class="art-card {cls}">'
                     f'<div class="art-row">'
                     # URL + word count
                     f'<div class="art-url-block">'
-                    f'  <a class="art-url" href="{url_e}" target="_blank">{url_e}</a>'
+                    f'  <a class="art-url" href="{url_e}" target="_blank">{url_e}</a>{_sitemap_badge}'
                     f'  <div class="art-wc">{r["word_count"]:,} words</div>'
                     f'</div>'
                     # Scores block
