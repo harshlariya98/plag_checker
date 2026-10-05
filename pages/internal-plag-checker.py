@@ -503,12 +503,16 @@ div[data-testid="stTabs"] button[role="tab"][aria-selected="true"] {
 div[data-testid="stTabs"] button[role="tab"]:hover { color: var(--navy) !important; }
 
 /* ── File uploader ─────────────────────────────────────────────────────────── */
+/* uploader column stretches to match button stack height */
+.st-key-new_upload { height: 100% !important; }
+.st-key-new_upload [data-testid="stFileUploader"] {
+    height: 100% !important; box-sizing: border-box !important;
+}
 div[data-testid="stFileUploader"] {
     border: 2px dashed #93c5fd !important;
     border-radius: 12px !important;
     background: #f8faff !important;
     transition: border-color .2s, background .2s, box-shadow .2s !important;
-    min-height: 88px !important;
     display: flex !important; align-items: center !important;
 }
 div[data-testid="stFileUploader"]:hover {
@@ -552,6 +556,11 @@ div[data-testid="stFileUploaderDropzone"] {
 /* ── Action buttons stack ── */
 .upload-action-stack [data-testid="stVerticalBlock"] { gap: 6px !important; }
 .upload-action-stack [data-testid="stElementContainer"] { margin: 0 !important; padding: 0 !important; }
+/* stretch uploader col to full row height */
+.st-key-new_upload { align-self: stretch !important; display: flex !important; flex-direction: column !important; }
+.st-key-new_upload > div { flex: 1 !important; display: flex !important; flex-direction: column !important; }
+.st-key-new_upload [data-testid="stElementContainer"] { flex: 1 !important; }
+.st-key-new_upload [data-testid="stFileUploader"] { flex: 1 !important; }
 .upload-sample-btn button {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
