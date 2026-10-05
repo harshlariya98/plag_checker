@@ -333,24 +333,13 @@ section[data-testid="stSidebar"] { display: none !important; }
     100% { left: 160%; opacity: 0; }
 }
 @keyframes guide-glow-pulse {
-    0%, 100% { box-shadow: 0 0 6px 1px rgba(99,102,241,.45), 0 0 18px 2px rgba(139,92,246,.2); }
-    50%       { box-shadow: 0 0 12px 2px rgba(99,102,241,.65), 0 0 28px 4px rgba(236,72,153,.25), 0 0 40px 6px rgba(6,182,212,.15); }
+    0%, 100% { box-shadow: 0 0 0 2px #6366f1, 0 0 8px 2px rgba(99,102,241,.35), 0 0 18px 3px rgba(139,92,246,.15); }
+    33%       { box-shadow: 0 0 0 2px #8b5cf6, 0 0 10px 2px rgba(139,92,246,.4), 0 0 22px 4px rgba(236,72,153,.18); }
+    66%       { box-shadow: 0 0 0 2px #06b6d4, 0 0 10px 2px rgba(6,182,212,.4),  0 0 22px 4px rgba(99,102,241,.18); }
 }
-/* Wrapper = animated gradient border ring */
-.guide-inline-btn {
-    position: relative !important;
-    border-radius: 10px !important;
-    padding: 2px !important;
-    background: linear-gradient(270deg, #6366f1, #8b5cf6, #ec4899, #06b6d4, #6366f1) !important;
-    background-size: 400% 400% !important;
-    animation: guide-border-flow 4s ease infinite, guide-glow-pulse 3s ease-in-out infinite !important;
-    transition: transform .2s ease !important;
-}
-.guide-inline-btn:hover {
-    transform: translateY(-2px) !important;
-    animation: guide-border-flow 2s ease infinite, guide-glow-pulse 1.5s ease-in-out infinite !important;
-}
-/* Button inner: white bg sits above gradient border */
+/* Wrapper — no padding, just position context */
+.guide-inline-btn { position: relative !important; }
+/* Button: animated glow border via box-shadow + shimmer */
 .guide-inline-btn button,
 .guide-inline-btn [data-testid="stBaseButton-secondary"] {
     all: unset !important;
@@ -358,14 +347,20 @@ section[data-testid="stSidebar"] { display: none !important; }
     width: 100% !important; box-sizing: border-box !important;
     position: relative !important; overflow: hidden !important;
     font-size: 13px !important; font-weight: 700 !important; color: #4f46e5 !important;
-    background: #ffffff !important;
-    border-radius: 8px !important; padding: 8px 14px !important;
+    background: #fff !important;
+    border: 2px solid transparent !important;
+    border-radius: 8px !important; padding: 6px 14px !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
-    transition: color .2s, transform .15s !important;
+    animation: guide-glow-pulse 3s ease-in-out infinite !important;
+    transition: transform .15s, color .15s !important;
+    background-clip: padding-box !important;
 }
 .guide-inline-btn button:hover,
-.guide-inline-btn [data-testid="stBaseButton-secondary"]:hover { color: #3730a3 !important; }
+.guide-inline-btn [data-testid="stBaseButton-secondary"]:hover {
+    color: #3730a3 !important; transform: translateY(-1px) !important;
+    animation: guide-glow-pulse-hover 1.5s ease-in-out infinite !important;
+}
 .guide-inline-btn button:active,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]:active { transform: scale(0.97) !important; }
 .guide-inline-btn button:focus,
@@ -376,12 +371,20 @@ section[data-testid="stSidebar"] { display: none !important; }
     content: '' !important;
     position: absolute !important; top: 0 !important; left: -100% !important;
     width: 55% !important; height: 100% !important;
-    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.75) 50%, transparent 100%) !important;
+    background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,.15) 50%, transparent 100%) !important;
     animation: guide-shimmer-sweep 2.8s ease-in-out infinite !important;
     pointer-events: none !important;
 }
+@keyframes guide-glow-pulse-hover {
+    0%, 100% { box-shadow: 0 0 0 2px #6366f1, 0 0 14px 3px rgba(99,102,241,.5), 0 0 28px 6px rgba(236,72,153,.25); }
+    50%       { box-shadow: 0 0 0 2px #ec4899, 0 0 18px 4px rgba(139,92,246,.6), 0 0 36px 8px rgba(6,182,212,.2); }
+}
 @media (prefers-reduced-motion: reduce) {
-    .guide-inline-btn { animation: none !important; box-shadow: 0 0 0 2px #6366f1 !important; }
+    .guide-inline-btn button,
+    .guide-inline-btn [data-testid="stBaseButton-secondary"] {
+        animation: none !important;
+        box-shadow: 0 0 0 2px #6366f1 !important;
+    }
     .guide-inline-btn button::after,
     .guide-inline-btn [data-testid="stBaseButton-secondary"]::after { animation: none !important; }
 }
