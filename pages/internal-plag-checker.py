@@ -339,27 +339,27 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 /* Wrapper — no padding, just position context */
 .guide-inline-btn { position: relative !important; }
-/* Button: animated glow border via box-shadow + shimmer */
+/* Button: flowing gradient bg + shimmer */
 .guide-inline-btn button,
 .guide-inline-btn [data-testid="stBaseButton-secondary"] {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
     width: 100% !important; box-sizing: border-box !important;
     position: relative !important; overflow: hidden !important;
-    font-size: 13px !important; font-weight: 700 !important; color: #4f46e5 !important;
-    background: #fff !important;
-    border: 2px solid transparent !important;
-    border-radius: 8px !important; padding: 6px 14px !important;
+    font-size: 13px !important; font-weight: 700 !important; color: #fff !important;
+    background: linear-gradient(270deg, #6366f1, #8b5cf6, #a855f7, #6366f1) !important;
+    background-size: 300% 100% !important;
+    border: none !important; border-radius: 8px !important; padding: 8px 14px !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
-    animation: guide-glow-pulse 3s ease-in-out infinite !important;
-    transition: transform .15s, color .15s !important;
-    background-clip: padding-box !important;
+    animation: guide-border-flow 3s ease infinite !important;
+    box-shadow: 0 2px 10px rgba(99,102,241,.35) !important;
+    transition: transform .15s, box-shadow .15s !important;
 }
 .guide-inline-btn button:hover,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]:hover {
-    color: #3730a3 !important; transform: translateY(-1px) !important;
-    animation: guide-glow-pulse-hover 1.5s ease-in-out infinite !important;
+    transform: translateY(-1px) scale(1.02) !important;
+    box-shadow: 0 4px 18px rgba(99,102,241,.55) !important;
 }
 .guide-inline-btn button:active,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]:active { transform: scale(0.97) !important; }
@@ -371,20 +371,13 @@ section[data-testid="stSidebar"] { display: none !important; }
     content: '' !important;
     position: absolute !important; top: 0 !important; left: -100% !important;
     width: 55% !important; height: 100% !important;
-    background: linear-gradient(90deg, transparent 0%, rgba(99,102,241,.15) 50%, transparent 100%) !important;
-    animation: guide-shimmer-sweep 2.8s ease-in-out infinite !important;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.4) 50%, transparent 100%) !important;
+    animation: guide-shimmer-sweep 2.5s ease-in-out infinite !important;
     pointer-events: none !important;
-}
-@keyframes guide-glow-pulse-hover {
-    0%, 100% { box-shadow: 0 0 0 2px #6366f1, 0 0 14px 3px rgba(99,102,241,.5), 0 0 28px 6px rgba(236,72,153,.25); }
-    50%       { box-shadow: 0 0 0 2px #ec4899, 0 0 18px 4px rgba(139,92,246,.6), 0 0 36px 8px rgba(6,182,212,.2); }
 }
 @media (prefers-reduced-motion: reduce) {
     .guide-inline-btn button,
-    .guide-inline-btn [data-testid="stBaseButton-secondary"] {
-        animation: none !important;
-        box-shadow: 0 0 0 2px #6366f1 !important;
-    }
+    .guide-inline-btn [data-testid="stBaseButton-secondary"] { animation: none !important; }
     .guide-inline-btn button::after,
     .guide-inline-btn [data-testid="stBaseButton-secondary"]::after { animation: none !important; }
 }
