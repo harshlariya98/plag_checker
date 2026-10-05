@@ -285,6 +285,16 @@ section[data-testid="stSidebar"] { display: none !important; }
     0%,100% { background-position: 200% center; }
     50%      { background-position: -200% center; }
 }
+@keyframes guide-gradient-flow {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes guide-pulse-ring {
+    0%   { box-shadow: 0 0 0 0 rgba(99,102,241,.5), 0 2px 8px rgba(99,102,241,.25); }
+    60%  { box-shadow: 0 0 0 7px rgba(99,102,241,.0), 0 2px 8px rgba(99,102,241,.25); }
+    100% { box-shadow: 0 0 0 0 rgba(99,102,241,.0), 0 2px 8px rgba(99,102,241,.25); }
+}
 .guide-btn-in-header {
     position: fixed !important;
     top: 10px !important; right: 220px !important;
@@ -311,6 +321,25 @@ section[data-testid="stSidebar"] { display: none !important; }
     box-shadow: 0 0 0 3px rgba(59,130,246,.25), 0 2px 6px rgba(22,50,79,.12) !important;
 }
 .guide-btn-in-header button:focus { outline: none !important; }
+/* ── Inline guide button (below Sample CSV) ── */
+.guide-inline-btn button {
+    all: unset !important;
+    display: inline-flex !important; align-items: center !important; gap: 6px !important;
+    font-size: 12.5px !important; font-weight: 700 !important; color: #fff !important;
+    background: linear-gradient(270deg, #6366f1, #8b5cf6, #ec4899, #6366f1) !important;
+    background-size: 300% 300% !important;
+    border: none !important; border-radius: 8px !important; padding: 7px 18px !important;
+    cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+    animation: guide-gradient-flow 3s ease infinite, guide-pulse-ring 2s ease-out infinite !important;
+    width: 100% !important; justify-content: center !important;
+}
+.guide-inline-btn button:hover {
+    transform: scale(1.03) !important;
+    animation: guide-gradient-flow 1.5s ease infinite !important;
+    box-shadow: 0 4px 15px rgba(99,102,241,.45) !important;
+}
+.guide-inline-btn button:focus { outline: none !important; }
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 12px; font-weight: 500; color: var(--muted);
@@ -1458,6 +1487,10 @@ if True:
                     mime="text/csv",
                     use_container_width=True,
                 )
+                st.markdown('<div class="guide-inline-btn">', unsafe_allow_html=True)
+                if st.button("📖 Guide", key="guide_inline_btn", use_container_width=True):
+                    _show_guide()
+                st.markdown('</div>', unsafe_allow_html=True)
             st.markdown(
                 '<div class="schema-row">'
                 '<div class="schema-group"><span class="schema-tag">Required</span>'
