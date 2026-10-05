@@ -529,6 +529,60 @@ div[data-testid="stFileUploader"]:hover {
     background: var(--blue-bg); color: var(--blue); border-color: var(--blue-border);
 }
 .schema-hint { font-size: 11.5px; color: var(--muted); margin: 4px 0 0; line-height: 1.55; }
+/* ── Upload section info banner ── */
+.upload-info-bar {
+    display: flex; gap: 10px; flex-wrap: wrap;
+    background: #f8faff; border: 1px solid #dbeafe;
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; align-items: flex-start;
+}
+.upload-info-col { display: flex; gap: 7px; align-items: flex-start; flex: 1; min-width: 160px; }
+.upload-info-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+.upload-info-col strong { font-size: 11.5px; font-weight: 700; color: #1e3a5f; display: block; margin-bottom: 1px; }
+.upload-info-col span  { font-size: 11px; color: #4b5563; line-height: 1.5; }
+.upload-info-divider { width: 1px; background: #dbeafe; align-self: stretch; }
+/* ── Action buttons stack ── */
+.upload-action-stack { display: flex; flex-direction: column; gap: 8px; }
+.upload-sample-btn button {
+    all: unset !important;
+    display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
+    width: 100% !important; padding: 8px 14px !important;
+    background: #fff !important; border: 1.5px solid #3b82f6 !important; border-radius: 8px !important;
+    font-size: 12.5px !important; font-weight: 600 !important; color: #2563eb !important;
+    cursor: pointer !important; white-space: nowrap !important;
+    font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
+    box-shadow: 0 1px 4px rgba(37,99,235,.1) !important;
+    transition: background .15s, border-color .15s, box-shadow .15s !important;
+}
+.upload-sample-btn button:hover {
+    background: #eff6ff !important; border-color: #2563eb !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,.2) !important;
+}
+/* schema info card */
+.schema-info-card {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 10px;
+    padding: 10px 14px; margin-top: 10px;
+    display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap;
+}
+.schema-col { flex: 1; min-width: 140px; }
+.schema-col-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: .5px; color: #94a3b8; margin-bottom: 5px;
+}
+.schema-pill {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; font-weight: 600;
+    padding: 3px 10px; border-radius: 6px;
+}
+.schema-pill.req { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+.schema-pill.opt { background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+.schema-col p { font-size: 11px; color: #64748b; margin: 4px 0 0; line-height: 1.5; }
+.schema-divider { width: 1px; background: #e2e8f0; align-self: stretch; }
+.schema-tip {
+    flex: 2; min-width: 200px; display: flex; gap: 8px; align-items: flex-start;
+    background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 8px 12px;
+}
+.schema-tip-icon { font-size: 15px; flex-shrink: 0; margin-top: 1px; }
+.schema-tip p { font-size: 11.5px; color: #78350f; margin: 0; line-height: 1.5; }
 
 /* ── Pre-run stat row ──────────────────────────────────────────────────────── */
 .info-row { display: flex; gap: 8px; margin: 10px 0 8px; flex-wrap: wrap; }
@@ -1466,6 +1520,30 @@ if True:
         tab_csv, tab_url = st.tabs(["📂  Upload CSV", "🔗  Paste URLs"])
 
         with tab_csv:
+            # ── Info banner ───────────────────────────────────────────────────
+            st.markdown(
+                '<div class="upload-info-bar">'
+                '  <div class="upload-info-col">'
+                '    <div class="upload-info-icon">📄</div>'
+                '    <div><strong>CSV Format</strong>'
+                '    <span>One row per article.<br>Columns: <code>url</code> (required), <code>description</code> (optional)</span></div>'
+                '  </div>'
+                '  <div class="upload-info-divider"></div>'
+                '  <div class="upload-info-col">'
+                '    <div class="upload-info-icon">⚡</div>'
+                '    <div><strong>Add descriptions for speed</strong>'
+                '    <span>Including article HTML/text skips live fetches — runs 3–5× faster.</span></div>'
+                '  </div>'
+                '  <div class="upload-info-divider"></div>'
+                '  <div class="upload-info-col">'
+                '    <div class="upload-info-icon">📦</div>'
+                '    <div><strong>Batch size</strong>'
+                '    <span>50–500 articles per run recommended for comfortable speed.</span></div>'
+                '  </div>'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            # ── Uploader + action buttons ─────────────────────────────────────
             _up_col, _dl_col = st.columns([1, 0.22])
             with _up_col:
                 new_file = st.file_uploader(
@@ -1473,6 +1551,7 @@ if True:
                     label_visibility="collapsed",
                 )
             with _dl_col:
+                st.markdown('<div class="upload-action-stack">', unsafe_allow_html=True)
                 st.download_button(
                     "📄 Sample CSV",
                     data=_SAMPLE_CSV.encode("utf-8"),
@@ -1483,15 +1562,27 @@ if True:
                 st.markdown('<div class="guide-inline-btn">', unsafe_allow_html=True)
                 if st.button("📖 Guide", key="guide_inline_btn", use_container_width=True):
                     _show_guide()
-                st.markdown('</div>', unsafe_allow_html=True)
+                st.markdown('</div></div>', unsafe_allow_html=True)
+            # ── Schema info card ─────────────────────────────────────────────
             st.markdown(
-                '<div class="schema-row">'
-                '<div class="schema-group"><span class="schema-tag">Required</span>'
-                '<span class="schema-key req">url</span></div>'
-                '<div class="schema-group"><span class="schema-tag">Optional</span>'
-                '<span class="schema-key">description</span></div>'
-                '</div>'
-                '<p class="schema-hint">Providing a <code>description</code> column (HTML or plain text) avoids an additional page fetch per article.</p>',
+                '<div class="schema-info-card">'
+                '  <div class="schema-col">'
+                '    <div class="schema-col-label">Required column</div>'
+                '    <span class="schema-pill req">🔗 url</span>'
+                '    <p>Full article URL, one per row</p>'
+                '  </div>'
+                '  <div class="schema-divider"></div>'
+                '  <div class="schema-col">'
+                '    <div class="schema-col-label">Optional column</div>'
+                '    <span class="schema-pill opt">📝 description</span>'
+                '    <p>HTML or plain-text article body</p>'
+                '  </div>'
+                '  <div class="schema-divider"></div>'
+                '  <div class="schema-tip">'
+                '    <div class="schema-tip-icon">💡</div>'
+                '    <p>Adding a <code>description</code> column (HTML or plain text) skips a live page fetch per article — making the check <strong>3–5× faster</strong>.</p>'
+                '  </div>'
+                '</div>',
                 unsafe_allow_html=True,
             )
             if new_file:
