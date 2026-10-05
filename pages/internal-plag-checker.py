@@ -273,7 +273,16 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 
 /* ── Right: corpus status ──────────────────────────────────────────────────── */
-.app-header-right { flex-shrink: 0; }
+.app-header-right { flex-shrink: 0; display: flex; align-items: center; gap: 10px; }
+.site-switcher {
+    display: inline-flex; align-items: center; gap: 5px;
+    font-size: 12px; font-weight: 700; color: #f97316 !important;
+    background: rgba(249,115,22,.08); border: 1.5px solid rgba(249,115,22,.3);
+    border-radius: 8px; padding: 4px 11px; text-decoration: none !important;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+}
+.site-switcher:hover { background: rgba(249,115,22,.15) !important; border-color: #f97316 !important; }
 
 /* ── Guide button positioning + highlight animation ────────────────────────── */
 @keyframes guide-glow {
@@ -1116,6 +1125,7 @@ st.markdown(
     f'    <span class="nav-tab {_tab_res_cls}">{_dot_res}Results</span>'
     f'  </nav>'
     f'  <div class="app-header-right">'
+    f'    <a href="/plag-checker-sd" target="_self" class="site-switcher">🏏 SportsDunia</a>'
     f'    {_corpus_badge}'
     f'  </div>'
     f'</div>',
