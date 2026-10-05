@@ -89,8 +89,8 @@ def _fmt_eta(seconds):
 
 _SM_NS = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
 
-@st.cache_data(ttl=3600, show_spinner=False)
-def _fetch_sd_sitemap_urls():
+@st.cache_data(show_spinner=False)
+def _fetch_sd_sitemap_urls(_cache_bust: int = 0):
     """Fetch all published URLs from SD sitemap. Returns frozenset of normalized URLs."""
     collected = set()
 
@@ -1031,11 +1031,6 @@ def _save_to_disk(key, vec, mat, urls, texts=None):
     if texts is not None:
         joblib.dump(texts, os.path.join(CACHE_DIR, f"{key}.texts.pkl"))
 
-# Pre-warm the corpus index in the background as soon as the server starts.
-# By the time the first user opens the page, the data is already in memory.
-threading.Thread(target=_get_corpus_index, daemon=True).start()
-
-
 def _ensure_corpus_index():
     if "sd_corpus_urls" in st.session_state:
         return
@@ -1562,6 +1557,16 @@ with st.expander(
             '<div class="filter-sub">Flag articles whose URL is already published on sportsdunia.com.</div>',
             unsafe_allow_html=True,
         )
+        if run_sitemap_chk:
+            _sm_loaded = bool(st.session_state.get("sd_sitemap_urls_loaded"))
+            _sm_count  = st.session_state.get("sd_sitemap_url_count", 0)
+            _sm_status = f"✅ {_sm_count:,} URLs loaded" if _sm_loaded else "⬜ Not loaded yet"
+            st.markdown(f'<div class="filter-sub">{_sm_status}</div>', unsafe_allow_html=True)
+            if st.button("🔄 Refresh sitemap", key="sd_sitemap_refresh_btn", use_container_width=True):
+                _fetch_sd_sitemap_urls.clear()
+                st.session_state["sd_sitemap_cache_bust"] = st.session_state.get("sd_sitemap_cache_bust", 0) + 1
+                st.session_state.pop("sd_sitemap_urls_loaded", None)
+                st.rerun()
         if run_web:
             st.markdown('<div class="filter-sub" style="margin-top:10px;font-weight:600;color:var(--navy);">Options</div>', unsafe_allow_html=True)
             n_passages   = st.slider("Passages per article", 4, 20, 8)
@@ -1588,11 +1593,15 @@ with st.expander(
 
 similar_topic_threshold = 80 if flag_similar else None
 
-# ── Pre-fetch sitemap URL set (cached 1h, non-blocking) ───────────────────────
+# ── Load sitemap URL set on demand (UI-controlled, no auto-refresh) ───────────
 _sd_sitemap_urls: "frozenset[str]" = frozenset()
 if run_sitemap_chk:
     try:
-        _sd_sitemap_urls = _fetch_sd_sitemap_urls()
+        _bust = st.session_state.get("sd_sitemap_cache_bust", 0)
+        _sd_sitemap_urls = _fetch_sd_sitemap_urls(_bust)
+        if _sd_sitemap_urls and not st.session_state.get("sd_sitemap_urls_loaded"):
+            st.session_state["sd_sitemap_urls_loaded"]  = True
+            st.session_state["sd_sitemap_url_count"]    = len(_sd_sitemap_urls)
     except Exception:
         _sd_sitemap_urls = frozenset()
 
