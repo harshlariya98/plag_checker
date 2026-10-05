@@ -504,14 +504,18 @@ div[data-testid="stTabs"] button[role="tab"]:hover { color: var(--navy) !importa
 
 /* ── File uploader ─────────────────────────────────────────────────────────── */
 div[data-testid="stFileUploader"] {
-    border: 1.5px dashed var(--border) !important;
-    border-radius: var(--radius) !important;
-    background: var(--light) !important;
-    transition: border-color .2s, background .2s !important;
+    border: 2px dashed #93c5fd !important;
+    border-radius: 12px !important;
+    background: #f8faff !important;
+    transition: border-color .2s, background .2s, box-shadow .2s !important;
 }
 div[data-testid="stFileUploader"]:hover {
-    border-color: var(--blue) !important;
-    background: var(--blue-bg) !important;
+    border-color: #3b82f6 !important;
+    background: #eff6ff !important;
+    box-shadow: 0 0 0 4px rgba(59,130,246,.08) !important;
+}
+div[data-testid="stFileUploaderDropzone"] {
+    border: none !important; background: transparent !important;
 }
 
 /* ── Schema badges ─────────────────────────────────────────────────────────── */
@@ -543,11 +547,11 @@ div[data-testid="stFileUploader"]:hover {
 .upload-info-col span  { font-size: 11px; color: #4b5563; line-height: 1.5; }
 .upload-info-divider { width: 1px; background: #dbeafe; align-self: stretch; }
 /* ── Action buttons stack ── */
-.upload-action-stack { display: flex; flex-direction: column; gap: 0; }
-.upload-action-stack > div { margin-bottom: 6px !important; }
+.upload-action-stack [data-testid="stElementContainer"],
 .upload-action-stack [data-testid="stDownloadButton"],
-.upload-action-stack [data-testid="stButton"] { margin: 0 !important; padding: 0 !important; }
-.upload-action-stack [data-testid="stElementContainer"] { margin: 0 !important; padding: 0 !important; }
+.upload-action-stack [data-testid="stButton"],
+.upload-action-stack .stDownloadButton,
+.upload-action-stack .stButton { margin-top: 0 !important; margin-bottom: 6px !important; padding: 0 !important; gap: 0 !important; }
 .upload-sample-btn button {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
@@ -727,13 +731,15 @@ div[data-testid="stFileUploader"]:hover {
     font-size: 13px !important; background: var(--surface) !important;
 }
 div[data-testid="stDownloadButton"] > button {
-    background: var(--blue) !important; border: none !important;
-    color: #fff !important; font-weight: 700 !important;
-    border-radius: var(--radius-sm) !important; font-size: 13px !important;
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%) !important;
+    border: none !important; color: #fff !important; font-weight: 700 !important;
+    border-radius: 10px !important; font-size: 13px !important;
+    box-shadow: 0 2px 8px rgba(37,99,235,.3) !important;
+    transition: box-shadow .2s, transform .15s !important;
 }
 div[data-testid="stDownloadButton"] > button:hover {
     transform: translateY(-1px) !important;
-    box-shadow: 0 4px 14px rgba(64,142,224,.35) !important;
+    box-shadow: 0 6px 16px rgba(37,99,235,.4) !important;
 }
 
 /* ── Misc ──────────────────────────────────────────────────────────────────── */
