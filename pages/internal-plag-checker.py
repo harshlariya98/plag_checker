@@ -321,36 +321,70 @@ section[data-testid="stSidebar"] { display: none !important; }
     box-shadow: 0 0 0 3px rgba(59,130,246,.25), 0 2px 6px rgba(22,50,79,.12) !important;
 }
 .guide-btn-in-header button:focus { outline: none !important; }
-/* ── Inline guide button (below Sample CSV) ── */
-@keyframes guide-shine {
-    0%   { background-position: -200% center; }
-    100% { background-position: 200% center; }
+/* ── Premium animated Guide button ── */
+@keyframes guide-border-flow {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
 }
+@keyframes guide-shimmer-sweep {
+    0%   { left: -100%; opacity: 0; }
+    15%  { opacity: 1; }
+    100% { left: 160%; opacity: 0; }
+}
+@keyframes guide-glow-pulse {
+    0%, 100% { box-shadow: 0 0 6px 1px rgba(99,102,241,.45), 0 0 18px 2px rgba(139,92,246,.2); }
+    50%       { box-shadow: 0 0 12px 2px rgba(99,102,241,.65), 0 0 28px 4px rgba(236,72,153,.25), 0 0 40px 6px rgba(6,182,212,.15); }
+}
+/* Wrapper = animated gradient border ring */
+.guide-inline-btn {
+    position: relative !important;
+    border-radius: 10px !important;
+    padding: 2px !important;
+    background: linear-gradient(270deg, #6366f1, #8b5cf6, #ec4899, #06b6d4, #6366f1) !important;
+    background-size: 400% 400% !important;
+    animation: guide-border-flow 4s ease infinite, guide-glow-pulse 3s ease-in-out infinite !important;
+    transition: transform .2s ease !important;
+}
+.guide-inline-btn:hover {
+    transform: translateY(-2px) !important;
+    animation: guide-border-flow 2s ease infinite, guide-glow-pulse 1.5s ease-in-out infinite !important;
+}
+/* Button inner: white bg sits above gradient border */
 .guide-inline-btn button,
 .guide-inline-btn [data-testid="stBaseButton-secondary"] {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
     width: 100% !important; box-sizing: border-box !important;
-    font-size: 12.5px !important; font-weight: 700 !important; color: #fff !important;
-    background: linear-gradient(100deg,
-        #6366f1 0%, #818cf8 20%, #a78bfa 35%,
-        rgba(255,255,255,.55) 48%, #c4b5fd 58%,
-        #818cf8 72%, #6366f1 100%) !important;
-    background-size: 250% auto !important;
-    border: none !important; border-radius: 8px !important; padding: 8px 14px !important;
+    position: relative !important; overflow: hidden !important;
+    font-size: 13px !important; font-weight: 700 !important; color: #4f46e5 !important;
+    background: #ffffff !important;
+    border-radius: 8px !important; padding: 8px 14px !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
-    animation: guide-shine 2s linear infinite, guide-pulse-ring 2.5s ease-out infinite !important;
-    box-shadow: 0 2px 10px rgba(99,102,241,.4) !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,.25) !important;
+    transition: color .2s, transform .15s !important;
 }
 .guide-inline-btn button:hover,
-.guide-inline-btn [data-testid="stBaseButton-secondary"]:hover {
-    box-shadow: 0 4px 18px rgba(99,102,241,.6) !important;
-    animation: guide-shine 1s linear infinite, guide-pulse-ring 2.5s ease-out infinite !important;
-}
+.guide-inline-btn [data-testid="stBaseButton-secondary"]:hover { color: #3730a3 !important; }
+.guide-inline-btn button:active,
+.guide-inline-btn [data-testid="stBaseButton-secondary"]:active { transform: scale(0.97) !important; }
 .guide-inline-btn button:focus,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]:focus { outline: none !important; }
+/* Shimmer sweep */
+.guide-inline-btn button::after,
+.guide-inline-btn [data-testid="stBaseButton-secondary"]::after {
+    content: '' !important;
+    position: absolute !important; top: 0 !important; left: -100% !important;
+    width: 55% !important; height: 100% !important;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,.75) 50%, transparent 100%) !important;
+    animation: guide-shimmer-sweep 2.8s ease-in-out infinite !important;
+    pointer-events: none !important;
+}
+@media (prefers-reduced-motion: reduce) {
+    .guide-inline-btn { animation: none !important; box-shadow: 0 0 0 2px #6366f1 !important; }
+    .guide-inline-btn button::after,
+    .guide-inline-btn [data-testid="stBaseButton-secondary"]::after { animation: none !important; }
+}
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 12px; font-weight: 500; color: var(--muted);
