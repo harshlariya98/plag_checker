@@ -55,12 +55,12 @@ LOGO_URI = _logo_b64()
 # ── paths ─────────────────────────────────────────────────────────────────────
 _HERE = os.path.dirname(os.path.abspath(__file__))
 CORPUS_PATH = os.environ.get(
-    "SD_PLAG_CORPUS_PATH",
-    os.path.join(_HERE, "..", "corpus", "sd_corpus.csv"),
+    "PLAG_CORPUS_PATH",
+    os.path.join(_HERE, "..", "corpus", "final_data_plag.csv"),
 )
 CACHE_DIR = os.environ.get(
-    "SD_PLAG_CACHE_DIR",
-    os.path.join(_HERE, "..", ".sd_plag_cache"),
+    "PLAG_CACHE_DIR",
+    os.path.join(_HERE, "..", ".plag_cache"),
 )
 os.makedirs(CACHE_DIR, exist_ok=True)
 
