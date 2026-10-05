@@ -1145,8 +1145,12 @@ def _show_guide():
 
     st.markdown(f"""
     <style>
-    div[data-testid="stDialog"] > div {{ padding-top: 0 !important; }}
-    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {{ gap: 0 !important; }}
+    div[data-testid="stDialog"] > div {{ padding-top: 0 !important; margin-top: 0 !important; }}
+    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {{ gap: 0 !important; padding-top: 0 !important; }}
+    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] > div:first-child p:empty,
+    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] > div:first-child > div:empty {{ display: none !important; }}
+    div[data-testid="stDialog"] p {{ margin: 0 !important; }}
+    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] > div:first-child {{ min-height: 0 !important; padding: 0 !important; margin: 0 !important; line-height: 0 !important; font-size: 0 !important; }}
     div[data-testid="stDialog"] button[aria-label="Close"] {{
         position: absolute !important; top: 92px !important; right: 12px !important;
         background: transparent !important; border: none !important; box-shadow: none !important;
