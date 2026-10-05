@@ -1140,122 +1140,189 @@ _GUIDE_SECTION_ICONS = {
 @st.dialog("​", width="large")
 def _show_guide():
     pdf_bytes = _build_pdf()
-    st.markdown("""
-    <style>
-    /* pin native × to align with our title bar row */
-    div[data-testid="stDialog"] > div { padding-top: 0 !important; }
-    div[data-testid="stDialog"] button[aria-label="Close"] {
-        position: absolute !important;
-        top: 92px !important; right: 12px !important;
-        background: transparent !important;
-        border: none !important; box-shadow: none !important;
-        border-radius: 6px !important; cursor: pointer !important;
-        width: 30px !important; height: 30px !important;
-        display: inline-flex !important; align-items: center !important; justify-content: center !important;
-        color: #64748b !important; opacity: 1 !important;
-        z-index: 10 !important;
-    }
-    div[data-testid="stDialog"] button[aria-label="Close"]:hover {
-        background: #f1f5f9 !important;
-    }
-    div[data-testid="stDialog"] > div { padding-top: 0 !important; }
-    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
-    div[data-testid="stDialog"] [data-testid="stDownloadButton"] { margin: 0 !important; }
-    /* custom title bar */
-    .guide-title-bar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        flex-wrap: wrap;
-        gap: 8px;
-        padding: 2px 0 12px 0;
-        border-bottom: 1px solid #e2e8f0;
-        margin-bottom: 8px;
-    }
-    .guide-title-bar h3 {
-        margin: 0 !important;
-        font-size: 17px !important;
-        font-weight: 700 !important;
-        color: #1e3a5f !important;
-        white-space: nowrap;
-        flex: 1;
-    }
-    .guide-title-actions {
-        display: flex; align-items: center; gap: 8px; padding-right: 40px;
-    }
-    .guide-pdf-btn {
-        display: inline-flex; align-items: center; gap: 6px;
-        background: #2563eb; color: #fff !important;
-        border: none; border-radius: 7px;
-        padding: 6px 16px; font-size: 13px; font-weight: 600;
-        cursor: pointer; white-space: nowrap; text-decoration: none;
-        font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
-        box-shadow: 0 1px 4px rgba(37,99,235,.25);
-    }
-    .guide-pdf-btn:hover { background: #1d4ed8; }
-    /* re-styled native × button moved into our bar */
-    .guide-close-btn {
-        all: unset !important;
-        display: inline-flex !important; align-items: center !important; justify-content: center !important;
-        width: 28px !important; height: 28px !important;
-        border-radius: 6px !important; cursor: pointer !important;
-        color: #64748b !important; font-size: 18px !important;
-        background: transparent !important;
-        transition: background .15s !important;
-    }
-    .guide-close-btn:hover { background: #f1f5f9 !important; color: #1e3a5f !important; }
-    .guide-section-card {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-left: 3px solid #3b82f6;
-        border-radius: 10px;
-        padding: 14px 18px;
-        margin-bottom: 10px;
-    }
-    .guide-section-card h4 {
-        margin: 0 0 8px 0 !important;
-        font-size: 13.5px !important; font-weight: 700 !important; color: #1e3a5f !important;
-    }
-    .guide-section-card p, .guide-section-card li {
-        margin: 0 0 4px 0 !important;
-        font-size: 12.5px !important; color: #374151 !important; line-height: 1.6 !important;
-    }
-    .guide-section-card ul { margin: 6px 0 0 0 !important; padding-left: 18px !important; }
-    </style>""", unsafe_allow_html=True)
-
     import base64
     pdf_b64 = base64.b64encode(pdf_bytes).decode()
 
-    # Render custom title bar: title left, Download PDF + fake × button right
-    # The fake × calls .click() on the real (hidden) Streamlit close button — no DOM moves
-    st.markdown(
-        f'<div class="guide-title-bar">'
-        f'<h3>📖 How to use the Plag Checker</h3>'
-        f'<div class="guide-title-actions">'
-        f'<a class="guide-pdf-btn" href="data:application/pdf;base64,{pdf_b64}" '
-        f'download="plag_checker_user_guide.pdf">⬇️ Download PDF</a>'
-        f'</div>'
-        f'</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown(f"""
+    <style>
+    div[data-testid="stDialog"] > div {{ padding-top: 0 !important; }}
+    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {{ gap: 0 !important; }}
+    div[data-testid="stDialog"] button[aria-label="Close"] {{
+        position: absolute !important; top: 92px !important; right: 12px !important;
+        background: transparent !important; border: none !important; box-shadow: none !important;
+        border-radius: 6px !important; cursor: pointer !important;
+        width: 30px !important; height: 30px !important;
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        color: #64748b !important; opacity: 1 !important; z-index: 10 !important;
+    }}
+    div[data-testid="stDialog"] button[aria-label="Close"]:hover {{ background: #f1f5f9 !important; }}
+    /* ── Guide popup layout ─────────────────────────────────────── */
+    .gd-wrap {{ font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif; }}
+    .gd-header {{
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 14px 0 14px 0; border-bottom: 2px solid #e2e8f0; margin-bottom: 16px;
+        padding-right: 42px;
+    }}
+    .gd-header-left {{ display: flex; align-items: center; gap: 10px; }}
+    .gd-header h2 {{
+        margin: 0 !important; font-size: 18px !important; font-weight: 800 !important;
+        color: #0f172a !important; letter-spacing: -0.3px !important;
+    }}
+    .gd-badge {{
+        background: #dbeafe; color: #1d4ed8; border-radius: 20px;
+        font-size: 10px; font-weight: 700; padding: 2px 9px; letter-spacing: .4px; text-transform: uppercase;
+    }}
+    .gd-pdf-btn {{
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #2563eb; color: #fff !important; text-decoration: none;
+        border-radius: 8px; padding: 7px 18px; font-size: 12.5px; font-weight: 600;
+        box-shadow: 0 2px 6px rgba(37,99,235,.3); white-space: nowrap;
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+        transition: background .15s;
+    }}
+    .gd-pdf-btn:hover {{ background: #1d4ed8; }}
+    /* ── Quick-start 2-col grid ── */
+    .gd-grid {{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }}
+    .gd-quick {{
+        background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px;
+        padding: 12px 14px; display: flex; gap: 10px; align-items: flex-start;
+    }}
+    .gd-quick-icon {{
+        font-size: 20px; flex-shrink: 0; line-height: 1.2;
+    }}
+    .gd-quick h5 {{ margin: 0 0 3px 0 !important; font-size: 12px !important; font-weight: 700 !important; color: #1e3a5f !important; }}
+    .gd-quick p {{ margin: 0 !important; font-size: 11.5px !important; color: #4b5563 !important; line-height: 1.5 !important; }}
+    /* ── Full-width section cards ── */
+    .gd-section {{ margin-bottom: 10px; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }}
+    .gd-section-hd {{
+        display: flex; align-items: center; gap: 8px;
+        padding: 10px 14px; background: #f1f5f9;
+        border-bottom: 1px solid #e2e8f0;
+    }}
+    .gd-section-hd span {{ font-size: 15px; }}
+    .gd-section-hd h4 {{ margin: 0 !important; font-size: 13px !important; font-weight: 700 !important; color: #1e3a5f !important; }}
+    .gd-section-body {{ padding: 12px 16px; background: #fff; }}
+    .gd-section-body p {{ margin: 0 0 5px 0 !important; font-size: 12.5px !important; color: #374151 !important; line-height: 1.6 !important; }}
+    .gd-section-body ul {{ margin: 0 !important; padding-left: 18px !important; }}
+    .gd-section-body li {{ font-size: 12.5px !important; color: #374151 !important; line-height: 1.7 !important; }}
+    /* ── Scoring steps ── */
+    .gd-steps {{ display: flex; flex-direction: column; gap: 8px; }}
+    .gd-step {{ display: flex; gap: 10px; align-items: flex-start; }}
+    .gd-step-num {{
+        flex-shrink: 0; width: 22px; height: 22px; border-radius: 50%;
+        background: #2563eb; color: #fff; font-size: 11px; font-weight: 700;
+        display: flex; align-items: center; justify-content: center; margin-top: 1px;
+    }}
+    .gd-step p {{ margin: 0 !important; font-size: 12.5px !important; color: #374151 !important; line-height: 1.6 !important; }}
+    /* ── Verdict tags ── */
+    .gd-verdicts {{ display: flex; flex-direction: column; gap: 7px; }}
+    .gd-verdict {{ display: flex; align-items: flex-start; gap: 10px; }}
+    .gd-vtag {{
+        flex-shrink: 0; border-radius: 5px; padding: 2px 9px;
+        font-size: 11px; font-weight: 700; white-space: nowrap; margin-top: 1px;
+    }}
+    .gd-vtag.danger {{ background: #fee2e2; color: #b91c1c; }}
+    .gd-vtag.warn   {{ background: #fef3c7; color: #b45309; }}
+    .gd-vtag.info   {{ background: #dbeafe; color: #1d4ed8; }}
+    .gd-vtag.ok     {{ background: #dcfce7; color: #15803d; }}
+    .gd-verdict p   {{ margin: 0 !important; font-size: 12.5px !important; color: #374151 !important; line-height: 1.55 !important; }}
+    /* ── Tips ── */
+    .gd-tips {{ display: flex; flex-direction: column; gap: 6px; }}
+    .gd-tip {{ display: flex; gap: 8px; align-items: flex-start; }}
+    .gd-tip-dot {{ flex-shrink:0; width:6px; height:6px; border-radius:50%; background:#2563eb; margin-top:6px; }}
+    .gd-tip p {{ margin:0 !important; font-size:12.5px !important; color:#374151 !important; line-height:1.6 !important; }}
+    /* ── Divider label ── */
+    .gd-divider {{ font-size:10.5px; font-weight:700; text-transform:uppercase; letter-spacing:.6px; color:#94a3b8; margin:14px 0 8px 0; }}
+    </style>
+    <div class="gd-wrap">
+    <!-- ── Header ── -->
+    <div class="gd-header">
+      <div class="gd-header-left">
+        <h2>📖 How to use the Plag Checker</h2>
+        <span class="gd-badge">Internal</span>
+      </div>
+      <a class="gd-pdf-btn" href="data:application/pdf;base64,{pdf_b64}" download="plag_checker_user_guide.pdf">⬇️ Download PDF</a>
+    </div>
 
-    for title, body in _GUIDE_SECTIONS:
-        icon = _GUIDE_SECTION_ICONS.get(title, "•")
-        lines = [l.strip() for l in body.split("\n") if l.strip()]
-        is_bullets = any(l.startswith(("•", "-", "1.", "2.", "3.")) for l in lines)
-        if is_bullets:
-            items_html = "".join(
-                f"<li>{l.lstrip('•- ')}</li>" if l.startswith(("•", "-")) else f"<p>{l}</p>"
-                for l in lines
-            )
-            body_html = f"<ul>{items_html}</ul>"
-        else:
-            body_html = "".join(f"<p>{l}</p>" for l in lines)
-        st.markdown(
-            f'<div class="guide-section-card">'
-            f'<h4>{icon} {title}</h4>{body_html}</div>',
-            unsafe_allow_html=True,
-        )
+    <!-- ── Quick-start 2-col ── -->
+    <div class="gd-divider">Quick overview</div>
+    <div class="gd-grid">
+      <div class="gd-quick">
+        <div class="gd-quick-icon">📂</div>
+        <div><h5>Upload a CSV</h5><p>Must have a <code>url</code> column. Add a <code>description</code> column (HTML or plain text) to skip live fetches and run 3–5× faster.</p></div>
+      </div>
+      <div class="gd-quick">
+        <div class="gd-quick-icon">⚡</div>
+        <div><h5>Run the check</h5><p>The tool compares your articles against our entire published corpus (~millions of articles) using TF-IDF + Shingle Jaccard scoring.</p></div>
+      </div>
+      <div class="gd-quick">
+        <div class="gd-quick-icon">🏷️</div>
+        <div><h5>Read the verdict</h5><p>Each article gets a <b>Duplicate / High Overlap / Similar Topic / Unique</b> verdict with a copy score percentage.</p></div>
+      </div>
+      <div class="gd-quick">
+        <div class="gd-quick-icon">🌐</div>
+        <div><h5>Optional: Web Check</h5><p>Also checks against the open web using DuckDuckGo. Much slower (~30–60s/article). Use only for low-corpus-score articles.</p></div>
+      </div>
+    </div>
+
+    <!-- ── Verdicts ── -->
+    <div class="gd-divider">Understanding verdicts</div>
+    <div class="gd-section">
+      <div class="gd-section-hd"><span>🏷️</span><h4>How to read the verdict</h4></div>
+      <div class="gd-section-body">
+        <div class="gd-verdicts">
+          <div class="gd-verdict"><span class="gd-vtag danger">Duplicate ≥35%</span><p>Substantial verbatim content shared with a corpus article. Needs rewrite or should not be published.</p></div>
+          <div class="gd-verdict"><span class="gd-vtag warn">High Overlap ≥14%</span><p>Significant word-sequence overlap. Review carefully before publishing.</p></div>
+          <div class="gd-verdict"><span class="gd-vtag info">Similar Topic</span><p>TF-IDF similarity is high (≥80%) but copy score is low. Same topic as an existing article — consider merging or differentiating.</p></div>
+          <div class="gd-verdict"><span class="gd-vtag ok">Unique</span><p>No significant overlap detected. Safe to publish.</p></div>
+        </div>
+        <p style="margin-top:8px !important; color:#6b7280 !important; font-size:11.5px !important;">The <b>Closest corpus match</b> column shows which existing article is most similar.</p>
+      </div>
+    </div>
+
+    <!-- ── Scoring ── -->
+    <div class="gd-divider">How scoring works</div>
+    <div class="gd-section">
+      <div class="gd-section-hd"><span>📊</span><h4>Three signals combined into one Copy Score</h4></div>
+      <div class="gd-section-body">
+        <div class="gd-steps">
+          <div class="gd-step"><div class="gd-step-num">1</div><p><b>TF-IDF Cosine Similarity</b> — finds the closest matching article in the corpus using term-frequency weighted word overlap. Identifies the best candidate to compare against.</p></div>
+          <div class="gd-step"><div class="gd-step-num">2</div><p><b>Shingle Jaccard (k=4 &amp; k=5)</b> — compares sequences of 4–5 consecutive words between articles. This is the <b>primary copy-detection signal</b>. Catches exact and near-exact copies even when sentences are rearranged.</p></div>
+          <div class="gd-step"><div class="gd-step-num">3</div><p><b>Paragraph-level Jaccard</b> — splits both articles into paragraphs and finds the highest-scoring pair. Catches partial copies where only one section is lifted.</p></div>
+        </div>
+        <p style="margin-top:10px !important; color:#6b7280 !important; font-size:11.5px !important; border-top:1px solid #f1f5f9; padding-top:8px !important;">The final <b>Copy Score</b> is the maximum of signals 2 and 3, expressed as a percentage.</p>
+      </div>
+    </div>
+
+    <!-- ── OOV + Tips side by side ── -->
+    <div class="gd-divider">Advanced</div>
+    <div class="gd-grid">
+      <div class="gd-section" style="margin-bottom:0">
+        <div class="gd-section-hd"><span>📖</span><h4>OOV Ratio</h4></div>
+        <div class="gd-section-body">
+          <p><b>Out-of-Vocabulary</b> — % of words in the article not in the corpus vocabulary.</p>
+          <ul>
+            <li><b>High OOV (&gt;40%)</b> — genuinely new content. Will score low on similarity even if well-written.</li>
+            <li><b>Low OOV (&lt;10%)</b> — uses same vocabulary as existing content. Expected for JEE, NEET, college admissions topics.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="gd-section" style="margin-bottom:0">
+        <div class="gd-section-hd"><span>💡</span><h4>Tips for best results</h4></div>
+        <div class="gd-section-body">
+          <div class="gd-tips">
+            <div class="gd-tip"><div class="gd-tip-dot"></div><p>Always include the <code>description</code> column — 3–5× faster.</p></div>
+            <div class="gd-tip"><div class="gd-tip-dot"></div><p>Run in batches of <b>50–200 articles</b> for comfortable speed.</p></div>
+            <div class="gd-tip"><div class="gd-tip-dot"></div><p>Copy Score <b>35%+</b> → strong signal, investigate the match.</p></div>
+            <div class="gd-tip"><div class="gd-tip-dot"></div><p>Scores 15–34% may be acceptable for evergreen topic articles.</p></div>
+            <div class="gd-tip"><div class="gd-tip-dot"></div><p>Always read flagged article pairs manually. Don't rely solely on scores.</p></div>
+            <div class="gd-tip"><div class="gd-tip-dot"></div><p>Internal use only — do not share the URL externally.</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # Guide button rendered here (after _show_guide is defined) — CSS floats it into header
 if st.button("❓ Guide", key="guide_btn"):
