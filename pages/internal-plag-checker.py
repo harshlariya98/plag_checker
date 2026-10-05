@@ -330,17 +330,14 @@ section[data-testid="stSidebar"] { display: none !important; }
     15%  { opacity: 1; }
     100% { left: 160%; opacity: 0; }
 }
-/* Wrapper: gradient bg + padding = visible border, hue-rotate cycles VIBGYOR */
-.guide-inline-btn {
+/* Target via Streamlit key class — reliable DOM match */
+.st-key-guide_inline_btn {
     padding: 2px !important;
     border-radius: 10px !important;
-    background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00cc44, #0066ff, #8b00ff) !important;
+    background: linear-gradient(135deg, #ff0000, #ff7700, #ffff00, #00cc44, #0066ff, #8b00ff) !important;
     animation: guide-hue-spin 3s linear infinite !important;
-    display: block !important;
 }
-/* Button: dark bg sits on top of the gradient border */
-.guide-inline-btn button,
-.guide-inline-btn [data-testid="stBaseButton-secondary"] {
+.st-key-guide_inline_btn button {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
     width: 100% !important; box-sizing: border-box !important;
@@ -352,28 +349,20 @@ section[data-testid="stSidebar"] { display: none !important; }
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
     transition: transform .15s !important;
 }
-.guide-inline-btn button:hover,
-.guide-inline-btn [data-testid="stBaseButton-secondary"]:hover {
-    transform: translateY(-1px) scale(1.02) !important;
-}
-.guide-inline-btn button:active,
-.guide-inline-btn [data-testid="stBaseButton-secondary"]:active { transform: scale(0.97) !important; }
-.guide-inline-btn button:focus,
-.guide-inline-btn [data-testid="stBaseButton-secondary"]:focus { outline: none !important; }
-/* Shimmer */
-.guide-inline-btn button::after,
-.guide-inline-btn [data-testid="stBaseButton-secondary"]::after {
+.st-key-guide_inline_btn button:hover { transform: translateY(-1px) scale(1.02) !important; }
+.st-key-guide_inline_btn button:active { transform: scale(0.97) !important; }
+.st-key-guide_inline_btn button:focus  { outline: none !important; }
+.st-key-guide_inline_btn button::after {
     content: '' !important;
     position: absolute !important; top: 0 !important; left: -100% !important;
     width: 55% !important; height: 100% !important;
-    background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent) !important;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.15), transparent) !important;
     animation: guide-shimmer-sweep 3s ease-in-out infinite !important;
     pointer-events: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
-    .guide-inline-btn { animation: none !important; }
-    .guide-inline-btn button::after,
-    .guide-inline-btn [data-testid="stBaseButton-secondary"]::after { animation: none !important; }
+    .st-key-guide_inline_btn { animation: none !important; }
+    .st-key-guide_inline_btn button::after { animation: none !important; }
 }
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
@@ -1604,10 +1593,9 @@ if True:
                     mime="text/csv",
                     use_container_width=True,
                 )
-                st.markdown('<div class="guide-inline-btn">', unsafe_allow_html=True)
                 if st.button("📖 Guide", key="guide_inline_btn", use_container_width=True):
                     _show_guide()
-                st.markdown('</div></div>', unsafe_allow_html=True)
+                st.markdown('</div>', unsafe_allow_html=True)
             # ── Schema info card ─────────────────────────────────────────────
             st.markdown(
                 '<div class="schema-info-card">'
