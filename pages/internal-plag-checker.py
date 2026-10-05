@@ -508,6 +508,8 @@ div[data-testid="stFileUploader"] {
     border-radius: 12px !important;
     background: #f8faff !important;
     transition: border-color .2s, background .2s, box-shadow .2s !important;
+    min-height: 88px !important;
+    display: flex !important; align-items: center !important;
 }
 div[data-testid="stFileUploader"]:hover {
     border-color: #3b82f6 !important;
@@ -516,6 +518,7 @@ div[data-testid="stFileUploader"]:hover {
 }
 div[data-testid="stFileUploaderDropzone"] {
     border: none !important; background: transparent !important;
+    width: 100% !important;
 }
 
 /* ── Schema badges ─────────────────────────────────────────────────────────── */
