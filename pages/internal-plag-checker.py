@@ -326,29 +326,31 @@ section[data-testid="stSidebar"] { display: none !important; }
     0%   { background-position: -200% center; }
     100% { background-position: 200% center; }
 }
-.guide-inline-btn button {
+.guide-inline-btn button,
+.guide-inline-btn [data-testid="stBaseButton-secondary"] {
     all: unset !important;
-    display: inline-flex !important; align-items: center !important; gap: 6px !important;
+    display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
+    width: 100% !important; box-sizing: border-box !important;
     font-size: 12.5px !important; font-weight: 700 !important; color: #fff !important;
     background: linear-gradient(100deg,
         #6366f1 0%, #818cf8 20%, #a78bfa 35%,
-        #fff9 45%, #c4b5fd 55%,
-        #818cf8 70%, #6366f1 100%) !important;
+        rgba(255,255,255,.55) 48%, #c4b5fd 58%,
+        #818cf8 72%, #6366f1 100%) !important;
     background-size: 250% auto !important;
-    border: none !important; border-radius: 8px !important; padding: 7px 18px !important;
+    border: none !important; border-radius: 8px !important; padding: 8px 14px !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
     animation: guide-shine 2s linear infinite, guide-pulse-ring 2.5s ease-out infinite !important;
     box-shadow: 0 2px 10px rgba(99,102,241,.4) !important;
-    width: 100% !important; justify-content: center !important;
-    text-shadow: 0 1px 3px rgba(0,0,0,.2) !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,.25) !important;
 }
-.guide-inline-btn button:hover {
-    transform: scale(1.04) !important;
+.guide-inline-btn button:hover,
+.guide-inline-btn [data-testid="stBaseButton-secondary"]:hover {
     box-shadow: 0 4px 18px rgba(99,102,241,.6) !important;
     animation: guide-shine 1s linear infinite, guide-pulse-ring 2.5s ease-out infinite !important;
 }
-.guide-inline-btn button:focus { outline: none !important; }
+.guide-inline-btn button:focus,
+.guide-inline-btn [data-testid="stBaseButton-secondary"]:focus { outline: none !important; }
 .corpus-chip {
     display: inline-flex; align-items: center; gap: 7px;
     font-size: 12px; font-weight: 500; color: var(--muted);
@@ -541,7 +543,11 @@ div[data-testid="stFileUploader"]:hover {
 .upload-info-col span  { font-size: 11px; color: #4b5563; line-height: 1.5; }
 .upload-info-divider { width: 1px; background: #dbeafe; align-self: stretch; }
 /* ── Action buttons stack ── */
-.upload-action-stack { display: flex; flex-direction: column; gap: 8px; }
+.upload-action-stack { display: flex; flex-direction: column; gap: 0; }
+.upload-action-stack > div { margin-bottom: 6px !important; }
+.upload-action-stack [data-testid="stDownloadButton"],
+.upload-action-stack [data-testid="stButton"] { margin: 0 !important; padding: 0 !important; }
+.upload-action-stack [data-testid="stElementContainer"] { margin: 0 !important; padding: 0 !important; }
 .upload-sample-btn button {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
