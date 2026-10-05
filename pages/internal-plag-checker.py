@@ -781,6 +781,12 @@ def _detect_desc_col(df, url_col):
             best_len, best_col = avg_len, col
     return best_col
 
+def _col_is_blank(df, col):
+    """Return True if every value in col is null/empty/whitespace."""
+    if col not in df.columns:
+        return True
+    return df[col].astype(str).str.strip().replace("nan", "").replace("", float("nan")).isna().all()
+
 def normalise_new(df):
     # 1. Name-based match first
     url_col  = smart_col(df, ["url","link","page_url","article_url","slug"])
@@ -791,6 +797,9 @@ def normalise_new(df):
         url_col = _detect_url_col(df)
     if not desc_col:
         desc_col = _detect_desc_col(df, url_col)
+    # 3. Drop blank columns so the other column is used solo
+    if url_col  and _col_is_blank(df, url_col):  url_col  = None
+    if desc_col and _col_is_blank(df, desc_col): desc_col = None
     rename = {}
     if url_col:  rename[url_col]  = "url"
     if desc_col: rename[desc_col] = "description"
@@ -1105,17 +1114,17 @@ def _build_pdf():
 _SAMPLE_CSV = (
     "url,description\n"
     "https://kollegeapply.com/article/jee-main-eligibility/,"
-    "\"JEE Main eligibility criteria 2025: Candidates must have passed 10+2 with Physics, "
-    "Chemistry and Mathematics. Age limit is 25 years for general category. Students can "
-    "attempt JEE Main a maximum of 6 times across 3 consecutive years.\"\n"
+    "\"<p>JEE Main eligibility criteria 2025: Candidates must have passed 10+2 with Physics, "
+    "Chemistry and Mathematics.</p><p>Age limit is 25 years for general category. Students can "
+    "attempt JEE Main a maximum of 6 times across 3 consecutive years.</p>\"\n"
     "https://kollegeapply.com/article/neet-syllabus/,"
     "\"NEET 2025 syllabus covers Physics, Chemistry and Biology from Class 11 and 12 NCERT. "
     "The exam consists of 200 questions of which 180 are to be attempted. Each correct answer "
     "carries 4 marks and wrong answers attract a penalty of 1 mark.\"\n"
     "https://kollegeapply.com/article/cat-exam-pattern/,"
-    "\"CAT 2025 exam pattern: 3 sections - Verbal Ability & Reading Comprehension, Data "
-    "Interpretation & Logical Reasoning, Quantitative Aptitude. Duration is 2 hours with "
-    "40 minutes per section. Negative marking of 1/3 for wrong MCQ answers.\"\n"
+    "\"<div><h2>CAT 2025 Exam Pattern</h2><p>3 sections: Verbal Ability &amp; Reading Comprehension, "
+    "Data Interpretation &amp; Logical Reasoning, Quantitative Aptitude. Duration is 2 hours with "
+    "40 minutes per section. Negative marking of 1/3 for wrong MCQ answers.</p></div>\"\n"
 )
 
 _GUIDE_SECTION_ICONS = {
@@ -1163,17 +1172,7 @@ def _show_guide():
     </style>""", unsafe_allow_html=True)
 
     pdf_bytes = _build_pdf()
-    csv_bytes = _SAMPLE_CSV.encode("utf-8")
-
-    _spacer, _csv_col, _pdf_col = st.columns([1, 0.28, 0.28])
-    with _csv_col:
-        st.download_button(
-            "📄  Sample CSV",
-            data=csv_bytes,
-            file_name="plag_checker_sample.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
+    _, _pdf_col = st.columns([1, 0.28])
     with _pdf_col:
         st.download_button(
             "⬇️  Guide PDF",
@@ -1320,10 +1319,20 @@ if True:
         tab_csv, tab_url = st.tabs(["📂  Upload CSV", "🔗  Paste URLs"])
 
         with tab_csv:
-            new_file = st.file_uploader(
-                "upload", type=["csv"], key="new_upload",
-                label_visibility="collapsed",
-            )
+            _up_col, _dl_col = st.columns([1, 0.22])
+            with _up_col:
+                new_file = st.file_uploader(
+                    "upload", type=["csv"], key="new_upload",
+                    label_visibility="collapsed",
+                )
+            with _dl_col:
+                st.download_button(
+                    "📄 Sample CSV",
+                    data=_SAMPLE_CSV.encode("utf-8"),
+                    file_name="plag_checker_sample.csv",
+                    mime="text/csv",
+                    use_container_width=True,
+                )
             st.markdown(
                 '<div class="schema-row">'
                 '<div class="schema-group"><span class="schema-tag">Required</span>'
@@ -1331,7 +1340,7 @@ if True:
                 '<div class="schema-group"><span class="schema-tag">Optional</span>'
                 '<span class="schema-key">description</span></div>'
                 '</div>'
-                '<p class="schema-hint">Providing a <code>description</code> column (HTML content) avoids an additional page fetch per article.</p>',
+                '<p class="schema-hint">Providing a <code>description</code> column (HTML or plain text) avoids an additional page fetch per article.</p>',
                 unsafe_allow_html=True,
             )
             if new_file:
