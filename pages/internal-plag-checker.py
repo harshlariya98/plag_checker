@@ -1137,51 +1137,87 @@ _GUIDE_SECTION_ICONS = {
     "Tips for best results": "💡",
 }
 
-@st.dialog("📖  How to use the Plag Checker", width="large")
+@st.dialog("​", width="large")
 def _show_guide():
+    pdf_bytes = _build_pdf()
     st.markdown("""
     <style>
+    /* hide the auto-generated dialog title (Streamlit renders it as a <p>) */
+    div[data-testid="stDialog"] h2 { display: none !important; }
+    div[data-testid="stDialogHeader"] { display: none !important; }
+    div[data-testid="stDialog"] .st-emotion-cache-1cqut97:first-child { display: none !important; }
     div[data-testid="stDialog"] > div { padding-top: 0 !important; }
     div[data-testid="stDialog"] [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
     div[data-testid="stDialog"] [data-testid="stDownloadButton"] { margin: 0 !important; }
+    /* custom title bar */
+    .guide-title-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 2px 0 10px 0;
+        border-bottom: 1px solid #e2e8f0;
+        margin-bottom: 8px;
+    }
+    .guide-title-bar h3 {
+        margin: 0 !important;
+        font-size: 17px !important;
+        font-weight: 700 !important;
+        color: #1e3a5f !important;
+        white-space: nowrap;
+    }
+    .guide-pdf-btn {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: #2563eb; color: #fff !important;
+        border: none; border-radius: 7px;
+        padding: 6px 16px; font-size: 13px; font-weight: 600;
+        cursor: pointer; white-space: nowrap; text-decoration: none;
+        font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+        box-shadow: 0 1px 4px rgba(37,99,235,.25);
+    }
+    .guide-pdf-btn:hover { background: #1d4ed8; }
     .guide-section-card {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
         border-left: 3px solid #3b82f6;
-        border-radius: 8px;
-        padding: 10px 14px;
-        margin-bottom: 6px;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin-bottom: 10px;
     }
     .guide-section-card h4 {
-        margin: 0 0 5px 0 !important;
-        font-size: 13px !important;
-        font-weight: 700 !important;
-        color: #1e3a5f !important;
+        margin: 0 0 8px 0 !important;
+        font-size: 13.5px !important; font-weight: 700 !important; color: #1e3a5f !important;
     }
     .guide-section-card p, .guide-section-card li {
-        margin: 0 0 2px 0 !important;
-        font-size: 12.5px !important;
-        color: #374151 !important;
-        line-height: 1.5 !important;
+        margin: 0 0 4px 0 !important;
+        font-size: 12.5px !important; color: #374151 !important; line-height: 1.6 !important;
     }
-    .guide-section-card ul { margin: 4px 0 0 0 !important; padding-left: 16px !important; }
-    .guide-dl-bar {
-        display: flex; gap: 8px; justify-content: flex-end;
-        padding: 4px 0 8px 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px;
-    }
+    .guide-section-card ul { margin: 6px 0 0 0 !important; padding-left: 18px !important; }
     </style>""", unsafe_allow_html=True)
 
-    pdf_bytes = _build_pdf()
-    _, _pdf_col = st.columns([1, 0.28])
-    with _pdf_col:
-        st.download_button(
-            "⬇️  Guide PDF",
-            data=pdf_bytes,
-            file_name="plag_checker_user_guide.pdf",
-            mime="application/pdf",
-            type="primary",
-            use_container_width=True,
-        )
+    # Hide the placeholder title Streamlit auto-renders from the dialog name arg
+    st.markdown(
+        '<img src=x onerror="(function(){'
+        'var ps=document.querySelectorAll(\'[data-testid=stDialog] p\');'
+        'for(var i=0;i<ps.length;i++){'
+        'if(ps[i].textContent.trim().replace(/\\u200b/g,\'\')===\'\'){'
+        'ps[i].parentElement.style.display=\'none\';break;}}'
+        '})()" style="display:none">',
+        unsafe_allow_html=True,
+    )
+
+    # Title + PDF download on same line as pure HTML (no Streamlit column gap)
+    import base64
+    pdf_b64 = base64.b64encode(pdf_bytes).decode()
+    st.markdown(
+        f'<div class="guide-title-bar">'
+        f'<h3>📖 How to use the Plag Checker</h3>'
+        f'<a class="guide-pdf-btn" href="data:application/pdf;base64,{pdf_b64}" '
+        f'download="plag_checker_user_guide.pdf">⬇️ Download PDF</a>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     for title, body in _GUIDE_SECTIONS:
         icon = _GUIDE_SECTION_ICONS.get(title, "•")
