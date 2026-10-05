@@ -1147,6 +1147,7 @@ def _show_guide():
     <style>
     div[data-testid="stDialog"] > div {{ padding-top: 0 !important; }}
     div[data-testid="stDialog"] > div > div {{ padding-top: 0 !important; margin-top: 0 !important; }}
+    div[data-testid="stDialog"] h2[slot="title"] {{ display: none !important; }}
     div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {{ gap: 0 !important; }}
     div[data-testid="stDialog"] button[aria-label="Close"] {{
         position: absolute !important; top: 92px !important; right: 12px !important;
