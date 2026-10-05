@@ -1142,10 +1142,22 @@ def _show_guide():
     pdf_bytes = _build_pdf()
     st.markdown("""
     <style>
-    /* hide the auto-generated dialog title (Streamlit renders it as a <p>) */
-    div[data-testid="stDialog"] h2 { display: none !important; }
-    div[data-testid="stDialogHeader"] { display: none !important; }
-    div[data-testid="stDialog"] .st-emotion-cache-1cqut97:first-child { display: none !important; }
+    /* pin native × to align with our title bar row */
+    div[data-testid="stDialog"] > div { padding-top: 0 !important; }
+    div[data-testid="stDialog"] button[aria-label="Close"] {
+        position: absolute !important;
+        top: 92px !important; right: 12px !important;
+        background: transparent !important;
+        border: none !important; box-shadow: none !important;
+        border-radius: 6px !important; cursor: pointer !important;
+        width: 30px !important; height: 30px !important;
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        color: #64748b !important; opacity: 1 !important;
+        z-index: 10 !important;
+    }
+    div[data-testid="stDialog"] button[aria-label="Close"]:hover {
+        background: #f1f5f9 !important;
+    }
     div[data-testid="stDialog"] > div { padding-top: 0 !important; }
     div[data-testid="stDialog"] [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
     div[data-testid="stDialog"] [data-testid="stDownloadButton"] { margin: 0 !important; }
@@ -1156,7 +1168,7 @@ def _show_guide():
         justify-content: space-between;
         flex-wrap: wrap;
         gap: 8px;
-        padding: 2px 0 10px 0;
+        padding: 2px 0 12px 0;
         border-bottom: 1px solid #e2e8f0;
         margin-bottom: 8px;
     }
@@ -1166,6 +1178,10 @@ def _show_guide():
         font-weight: 700 !important;
         color: #1e3a5f !important;
         white-space: nowrap;
+        flex: 1;
+    }
+    .guide-title-actions {
+        display: flex; align-items: center; gap: 8px; padding-right: 40px;
     }
     .guide-pdf-btn {
         display: inline-flex; align-items: center; gap: 6px;
@@ -1177,6 +1193,17 @@ def _show_guide():
         box-shadow: 0 1px 4px rgba(37,99,235,.25);
     }
     .guide-pdf-btn:hover { background: #1d4ed8; }
+    /* re-styled native × button moved into our bar */
+    .guide-close-btn {
+        all: unset !important;
+        display: inline-flex !important; align-items: center !important; justify-content: center !important;
+        width: 28px !important; height: 28px !important;
+        border-radius: 6px !important; cursor: pointer !important;
+        color: #64748b !important; font-size: 18px !important;
+        background: transparent !important;
+        transition: background .15s !important;
+    }
+    .guide-close-btn:hover { background: #f1f5f9 !important; color: #1e3a5f !important; }
     .guide-section-card {
         background: #f8fafc;
         border: 1px solid #e2e8f0;
@@ -1196,25 +1223,18 @@ def _show_guide():
     .guide-section-card ul { margin: 6px 0 0 0 !important; padding-left: 18px !important; }
     </style>""", unsafe_allow_html=True)
 
-    # Hide the placeholder title Streamlit auto-renders from the dialog name arg
-    st.markdown(
-        '<img src=x onerror="(function(){'
-        'var ps=document.querySelectorAll(\'[data-testid=stDialog] p\');'
-        'for(var i=0;i<ps.length;i++){'
-        'if(ps[i].textContent.trim().replace(/\\u200b/g,\'\')===\'\'){'
-        'ps[i].parentElement.style.display=\'none\';break;}}'
-        '})()" style="display:none">',
-        unsafe_allow_html=True,
-    )
-
-    # Title + PDF download on same line as pure HTML (no Streamlit column gap)
     import base64
     pdf_b64 = base64.b64encode(pdf_bytes).decode()
+
+    # Render custom title bar: title left, Download PDF + fake × button right
+    # The fake × calls .click() on the real (hidden) Streamlit close button — no DOM moves
     st.markdown(
         f'<div class="guide-title-bar">'
         f'<h3>📖 How to use the Plag Checker</h3>'
+        f'<div class="guide-title-actions">'
         f'<a class="guide-pdf-btn" href="data:application/pdf;base64,{pdf_b64}" '
         f'download="plag_checker_user_guide.pdf">⬇️ Download PDF</a>'
+        f'</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
