@@ -322,22 +322,31 @@ section[data-testid="stSidebar"] { display: none !important; }
 }
 .guide-btn-in-header button:focus { outline: none !important; }
 /* ── Inline guide button (below Sample CSV) ── */
+@keyframes guide-shine {
+    0%   { background-position: -200% center; }
+    100% { background-position: 200% center; }
+}
 .guide-inline-btn button {
     all: unset !important;
     display: inline-flex !important; align-items: center !important; gap: 6px !important;
     font-size: 12.5px !important; font-weight: 700 !important; color: #fff !important;
-    background: linear-gradient(270deg, #6366f1, #8b5cf6, #ec4899, #6366f1) !important;
-    background-size: 300% 300% !important;
+    background: linear-gradient(100deg,
+        #6366f1 0%, #818cf8 20%, #a78bfa 35%,
+        #fff9 45%, #c4b5fd 55%,
+        #818cf8 70%, #6366f1 100%) !important;
+    background-size: 250% auto !important;
     border: none !important; border-radius: 8px !important; padding: 7px 18px !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
-    animation: guide-gradient-flow 3s ease infinite, guide-pulse-ring 2s ease-out infinite !important;
+    animation: guide-shine 2s linear infinite, guide-pulse-ring 2.5s ease-out infinite !important;
+    box-shadow: 0 2px 10px rgba(99,102,241,.4) !important;
     width: 100% !important; justify-content: center !important;
+    text-shadow: 0 1px 3px rgba(0,0,0,.2) !important;
 }
 .guide-inline-btn button:hover {
-    transform: scale(1.03) !important;
-    animation: guide-gradient-flow 1.5s ease infinite !important;
-    box-shadow: 0 4px 15px rgba(99,102,241,.45) !important;
+    transform: scale(1.04) !important;
+    box-shadow: 0 4px 18px rgba(99,102,241,.6) !important;
+    animation: guide-shine 1s linear infinite, guide-pulse-ring 2.5s ease-out infinite !important;
 }
 .guide-inline-btn button:focus { outline: none !important; }
 .corpus-chip {
@@ -1021,19 +1030,7 @@ st.markdown(
     f'  <div class="app-header-right">'
     f'    {_corpus_badge}'
     f'  </div>'
-    f'</div>'
-    f'<img src=x onerror="(function(){{'
-    f'function tag(){{'
-    f'var bs=document.querySelectorAll(\'[data-testid=stButton] button\');'
-    f'for(var i=0;i<bs.length;i++){{'
-    f'if(bs[i].textContent.trim().indexOf(\'Guide\')!==-1){{'
-    f'var w=bs[i].closest(\'[data-testid=stButton]\').parentElement;'
-    f'if(w&&!w.classList.contains(\'guide-btn-in-header\')){{'
-    f'w.classList.add(\'guide-btn-in-header\');'
-    f'}}return true;}}}}return false;}}'
-    f'if(!tag()){{var o=new MutationObserver(function(){{if(tag())o.disconnect();}});'
-    f'o.observe(document.body,{{childList:true,subtree:true}});}}'
-    f'}})()" style="display:none">',
+    f'</div>',
     unsafe_allow_html=True,
 )
 
@@ -1354,10 +1351,6 @@ def _show_guide():
     </div>
     </div>
     """, unsafe_allow_html=True)
-
-# Guide button rendered here (after _show_guide is defined) — CSS floats it into header
-if st.button("❓ Guide", key="guide_btn"):
-    _show_guide()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Corpus check + load
