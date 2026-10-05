@@ -321,61 +321,46 @@ section[data-testid="stSidebar"] { display: none !important; }
     box-shadow: 0 0 0 3px rgba(59,130,246,.25), 0 2px 6px rgba(22,50,79,.12) !important;
 }
 .guide-btn-in-header button:focus { outline: none !important; }
-/* ── Premium VIBGYOR running border Guide button ── */
-@property --guide-angle {
-    syntax: '<angle>';
-    initial-value: 0deg;
-    inherits: false;
-}
-@keyframes guide-border-spin {
-    to { --guide-angle: 360deg; }
+/* ── VIBGYOR running border Guide button ── */
+@keyframes guide-hue-spin {
+    to { filter: hue-rotate(360deg); }
 }
 @keyframes guide-shimmer-sweep {
     0%   { left: -100%; opacity: 0; }
     15%  { opacity: 1; }
     100% { left: 160%; opacity: 0; }
 }
-/* Wrapper: no padding, just stacking context */
+/* Wrapper: gradient bg + padding = visible border, hue-rotate cycles VIBGYOR */
 .guide-inline-btn {
-    position: relative !important;
-    isolation: isolate !important;
+    padding: 2px !important;
     border-radius: 10px !important;
+    background: linear-gradient(90deg, #ff0000, #ff7700, #ffff00, #00cc44, #0066ff, #8b00ff) !important;
+    animation: guide-hue-spin 3s linear infinite !important;
+    display: block !important;
 }
-/* Running VIBGYOR conic-gradient border via ::before */
-.guide-inline-btn::before {
-    content: '' !important;
-    position: absolute !important;
-    inset: -2px !important;
-    border-radius: 10px !important;
-    background: conic-gradient(from var(--guide-angle),
-        #ff0000, #ff7700, #ffff00, #00cc44, #0066ff, #4b0082, #cc44ff, #ff0000) !important;
-    animation: guide-border-spin 2.5s linear infinite !important;
-    z-index: -1 !important;
-}
-/* Button: dark bg floats above the border */
+/* Button: dark bg sits on top of the gradient border */
 .guide-inline-btn button,
 .guide-inline-btn [data-testid="stBaseButton-secondary"] {
     all: unset !important;
     display: flex !important; align-items: center !important; justify-content: center !important; gap: 6px !important;
     width: 100% !important; box-sizing: border-box !important;
-    position: relative !important; overflow: hidden !important; z-index: 1 !important;
+    position: relative !important; overflow: hidden !important;
     font-size: 13px !important; font-weight: 700 !important; color: #fff !important;
     background: #1e293b !important;
     border-radius: 8px !important; padding: 8px 14px !important;
     cursor: pointer !important; white-space: nowrap !important; line-height: 1.4 !important;
     font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif !important;
-    transition: transform .15s, background .15s !important;
+    transition: transform .15s !important;
 }
 .guide-inline-btn button:hover,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]:hover {
     transform: translateY(-1px) scale(1.02) !important;
-    background: #0f172a !important;
 }
 .guide-inline-btn button:active,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]:active { transform: scale(0.97) !important; }
 .guide-inline-btn button:focus,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]:focus { outline: none !important; }
-/* Shimmer sweep */
+/* Shimmer */
 .guide-inline-btn button::after,
 .guide-inline-btn [data-testid="stBaseButton-secondary"]::after {
     content: '' !important;
@@ -386,7 +371,7 @@ section[data-testid="stSidebar"] { display: none !important; }
     pointer-events: none !important;
 }
 @media (prefers-reduced-motion: reduce) {
-    .guide-inline-btn::before { animation: none !important; }
+    .guide-inline-btn { animation: none !important; }
     .guide-inline-btn button::after,
     .guide-inline-btn [data-testid="stBaseButton-secondary"]::after { animation: none !important; }
 }
