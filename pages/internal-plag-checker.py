@@ -1102,32 +1102,105 @@ def _build_pdf():
         pdf.ln(4)
     return bytes(pdf.output())
 
+_SAMPLE_CSV = (
+    "url,description\n"
+    "https://kollegeapply.com/article/jee-main-eligibility/,"
+    "\"JEE Main eligibility criteria 2025: Candidates must have passed 10+2 with Physics, "
+    "Chemistry and Mathematics. Age limit is 25 years for general category. Students can "
+    "attempt JEE Main a maximum of 6 times across 3 consecutive years.\"\n"
+    "https://kollegeapply.com/article/neet-syllabus/,"
+    "\"NEET 2025 syllabus covers Physics, Chemistry and Biology from Class 11 and 12 NCERT. "
+    "The exam consists of 200 questions of which 180 are to be attempted. Each correct answer "
+    "carries 4 marks and wrong answers attract a penalty of 1 mark.\"\n"
+    "https://kollegeapply.com/article/cat-exam-pattern/,"
+    "\"CAT 2025 exam pattern: 3 sections - Verbal Ability & Reading Comprehension, Data "
+    "Interpretation & Logical Reasoning, Quantitative Aptitude. Duration is 2 hours with "
+    "40 minutes per section. Negative marking of 1/3 for wrong MCQ answers.\"\n"
+)
+
+_GUIDE_SECTION_ICONS = {
+    "What does this tool do?": "🔍",
+    "How to prepare your CSV": "📋",
+    "How scoring works": "📊",
+    "How to read the verdict": "🏷️",
+    "What is OOV ratio?": "📖",
+    "Web Check (optional)": "🌐",
+    "Tips for best results": "💡",
+}
+
 @st.dialog("📖  How to use the Plag Checker", width="large")
 def _show_guide():
     st.markdown("""
     <style>
-    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {gap: 0.35rem !important;}
-    div[data-testid="stDialog"] [data-testid="stMarkdown"] p {margin: 0 0 0.15rem 0 !important;}
-    div[data-testid="stDialog"] hr {margin: 0.4rem 0 !important;}
-    div[data-testid="stDialog"] [data-testid="stDownloadButton"] {margin: 0 !important;}
+    div[data-testid="stDialog"] > div { padding-top: 0 !important; }
+    div[data-testid="stDialog"] [data-testid="stVerticalBlock"] { gap: 0.5rem !important; }
+    div[data-testid="stDialog"] [data-testid="stDownloadButton"] { margin: 0 !important; }
+    .guide-section-card {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-left: 3px solid #3b82f6;
+        border-radius: 8px;
+        padding: 10px 14px;
+        margin-bottom: 6px;
+    }
+    .guide-section-card h4 {
+        margin: 0 0 5px 0 !important;
+        font-size: 13px !important;
+        font-weight: 700 !important;
+        color: #1e3a5f !important;
+    }
+    .guide-section-card p, .guide-section-card li {
+        margin: 0 0 2px 0 !important;
+        font-size: 12.5px !important;
+        color: #374151 !important;
+        line-height: 1.5 !important;
+    }
+    .guide-section-card ul { margin: 4px 0 0 0 !important; padding-left: 16px !important; }
+    .guide-dl-bar {
+        display: flex; gap: 8px; justify-content: flex-end;
+        padding: 4px 0 8px 0; border-bottom: 1px solid #e2e8f0; margin-bottom: 8px;
+    }
     </style>""", unsafe_allow_html=True)
+
     pdf_bytes = _build_pdf()
-    _, _pdf_col = st.columns([1, 0.22])
+    csv_bytes = _SAMPLE_CSV.encode("utf-8")
+
+    _spacer, _csv_col, _pdf_col = st.columns([1, 0.28, 0.28])
+    with _csv_col:
+        st.download_button(
+            "📄  Sample CSV",
+            data=csv_bytes,
+            file_name="plag_checker_sample.csv",
+            mime="text/csv",
+            use_container_width=True,
+        )
     with _pdf_col:
         st.download_button(
-            "⬇️  Download as PDF",
+            "⬇️  Guide PDF",
             data=pdf_bytes,
             file_name="plag_checker_user_guide.pdf",
             mime="application/pdf",
             type="primary",
             use_container_width=True,
         )
-    st.divider()
+
     for title, body in _GUIDE_SECTIONS:
-        st.markdown(f"**{title}**")
-        for line in body.split("\n"):
-            if line.strip():
-                st.markdown(line)
+        icon = _GUIDE_SECTION_ICONS.get(title, "•")
+        lines = [l.strip() for l in body.split("\n") if l.strip()]
+        is_bullets = any(l.startswith(("•", "-", "1.", "2.", "3.")) for l in lines)
+        if is_bullets:
+            items_html = "".join(
+                f"<li>{l.lstrip('•- ')}</li>" if l.startswith(("•", "-")) else f"<p>{l}</p>"
+                for l in lines
+            )
+            body_html = f"<ul>{items_html}</ul>"
+        else:
+            body_html = "".join(f"<p>{l}</p>" for l in lines)
+        st.markdown(
+            f'<div class="guide-section-card">'
+            f'<h4>{icon} {title}</h4>{body_html}</div>',
+            unsafe_allow_html=True,
+        )
 
 # Guide button rendered here (after _show_guide is defined) — CSS floats it into header
 if st.button("❓ Guide", key="guide_btn"):
